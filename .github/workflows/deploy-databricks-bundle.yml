@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "**"
-  workflow_dispatch:
 
 env:
   DATABRICKS_AUTH_TYPE: oauth-m2m
@@ -16,7 +15,7 @@ env:
 jobs:
   deploy-dev:
     name: Deploy dev
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -44,6 +43,9 @@ jobs:
       - name: Validate dev bundle
         run: databricks bundle validate --target dev
 
+      - name: Plan dev bundle
+        run: databricks bundle plan --target dev
+
       - name: Deploy dev bundle
         run: databricks bundle deploy --target dev
 
@@ -67,7 +69,7 @@ jobs:
 
   deploy-prod:
     name: Deploy prod
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     needs: plan-prod
     runs-on: ubuntu-latest
     environment:
