@@ -1,21 +1,13 @@
 resources:
   schemas:
-    dev:
-      name: ${workspace.current_user.short_name}
-      comment: Dev schema for the AdventureWorks data warehouse dimensional model
-      catalog_name: ${var.catalog}
-      grants:
-        - principal: ${workspace.current_user.short_name}
-          privileges:
-            - MANAGE
-        - principal: REDACTED_DEPLOYMENT_USER_NAME
-          privileges:
-            - MANAGE
     prod:
-      name: prod
-      comment: Prod schema for the AdventureWorks data warehouse dimensional model
+      name: ${var.schema}
+      comment: Schema for the AdventureWorks data warehouse dimensional model
       catalog_name: ${var.catalog}
       grants:
         - principal: REDACTED_DEPLOYMENT_USER_NAME
+          privileges:
+            - MANAGE
+        - principal: ${var.deployment_service_principal_name}
           privileges:
             - MANAGE
