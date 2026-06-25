@@ -14,12 +14,9 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
-  catalog_storage_root:
-    description: The storage root to use for the catalog
-    default: s3://dbstorage-prod-dw8ze/uc/1901b1a6-50df-4005-aa66-2af76913ddb2/1a6a2506-7dfb-4875-936e-ea6d800962a9/catalogs/adventure_works_dw
   deployment_service_principal_name:
     description: The service principal used by CI/CD deployments
-    default: gh-cicd-sp
+    default: REDACTED_DEPLOYMENT_SERVICE_PRINCIPAL_NAME
 
 targets:
   dev:

@@ -1,22 +1,9 @@
 resources:
-  catalogs:
-    adventure_works_dw:
-      name: adventure_works_dw
-      comment: The catalog for the AdventureWorks data warehouse dimensional model
-      storage_root: ${var.catalog_storage_root}
-      grants:
-        - principal: ${workspace.current_user.short_name}
-          privileges:
-            - MANAGE
-        - principal: REDACTED_DEPLOYMENT_USER_NAME
-          privileges:
-            - MANAGE
-
   schemas:
     dev:
       name: ${workspace.current_user.short_name}
       comment: Dev schema for the AdventureWorks data warehouse dimensional model
-      catalog_name: ${resources.catalogs.adventure_works_dw.name}
+      catalog_name: ${var.catalog}
       grants:
         - principal: ${workspace.current_user.short_name}
           privileges:
@@ -27,7 +14,7 @@ resources:
     prod:
       name: prod
       comment: Prod schema for the AdventureWorks data warehouse dimensional model
-      catalog_name: ${resources.catalogs.adventure_works_dw.name}
+      catalog_name: ${var.catalog}
       grants:
         - principal: REDACTED_DEPLOYMENT_USER_NAME
           privileges:

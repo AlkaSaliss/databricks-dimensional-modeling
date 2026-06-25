@@ -25,6 +25,21 @@ jobs:
       - name: Set up Databricks CLI
         uses: databricks/setup-cli@main
 
+      - name: Grant catalog permissions
+        run: |
+          databricks grants update catalog adventure_works_dw --json "{
+            \"changes\": [
+              {
+                \"principal\": \"${DATABRICKS_CLIENT_ID}\",
+                \"add\": [\"MANAGE\"]
+              },
+              {
+                \"principal\": \"REDACTED_DEPLOYMENT_USER_NAME\",
+                \"add\": [\"MANAGE\"]
+              }
+            ]
+          }"
+
       - name: Validate dev bundle
         run: databricks bundle validate --target dev
 
@@ -42,6 +57,21 @@ jobs:
 
       - name: Set up Databricks CLI
         uses: databricks/setup-cli@main
+
+      - name: Grant catalog permissions
+        run: |
+          databricks grants update catalog adventure_works_dw --json "{
+            \"changes\": [
+              {
+                \"principal\": \"${DATABRICKS_CLIENT_ID}\",
+                \"add\": [\"MANAGE\"]
+              },
+              {
+                \"principal\": \"REDACTED_DEPLOYMENT_USER_NAME\",
+                \"add\": [\"MANAGE\"]
+              }
+            ]
+          }"
 
       - name: Validate prod bundle
         run: databricks bundle validate --target prod
@@ -63,6 +93,21 @@ jobs:
 
       - name: Set up Databricks CLI
         uses: databricks/setup-cli@main
+
+      - name: Grant catalog permissions
+        run: |
+          databricks grants update catalog adventure_works_dw --json "{
+            \"changes\": [
+              {
+                \"principal\": \"${DATABRICKS_CLIENT_ID}\",
+                \"add\": [\"MANAGE\"]
+              },
+              {
+                \"principal\": \"REDACTED_DEPLOYMENT_USER_NAME\",
+                \"add\": [\"MANAGE\"]
+              }
+            ]
+          }"
 
       - name: Deploy prod bundle
         run: databricks bundle deploy --target prod
