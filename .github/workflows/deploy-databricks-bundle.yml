@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "**"
+  workflow_dispatch:
 
 env:
   DATABRICKS_AUTH_TYPE: oauth-m2m
@@ -15,7 +16,7 @@ env:
 jobs:
   deploy-dev:
     name: Deploy dev
-    if: github.ref != 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -58,21 +59,6 @@ jobs:
       - name: Set up Databricks CLI
         uses: databricks/setup-cli@main
 
-      - name: Grant catalog permissions
-        run: |
-          databricks grants update catalog adventure_works_dw --json "{
-            \"changes\": [
-              {
-                \"principal\": \"${DATABRICKS_CLIENT_ID}\",
-                \"add\": [\"MANAGE\"]
-              },
-              {
-                \"principal\": \"REDACTED_DEPLOYMENT_USER_NAME\",
-                \"add\": [\"MANAGE\"]
-              }
-            ]
-          }"
-
       - name: Validate prod bundle
         run: databricks bundle validate --target prod
 
@@ -81,7 +67,7 @@ jobs:
 
   deploy-prod:
     name: Deploy prod
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: plan-prod
     runs-on: ubuntu-latest
     environment:
