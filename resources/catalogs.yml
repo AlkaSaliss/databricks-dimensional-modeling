@@ -3,6 +3,7 @@ resources:
     adventure_works_dw:
       name: adventure_works_dw
       comment: The catalog for the AdventureWorks data warehouse dimensional model
+      storage_root: ${var.catalog_storage_root}
       grants:
         - principal: ${workspace.current_user.short_name}
           privileges:
