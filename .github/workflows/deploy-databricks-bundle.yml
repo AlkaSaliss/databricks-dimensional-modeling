@@ -11,6 +11,7 @@ env:
   DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
   DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
   BUNDLE_VAR_deployment_service_principal_name: ${{ secrets.DATABRICKS_CLIENT_ID }}
+  BUNDLE_VAR_deployment_user_name: ${{ secrets.DATABRICKS_DEPLOYMENT_USER_NAME }}
 
 jobs:
   deploy-dev:
@@ -34,7 +35,7 @@ jobs:
                 \"add\": [\"MANAGE\"]
               },
               {
-                \"principal\": \"REDACTED_DEPLOYMENT_USER_NAME\",
+                \"principal\": \"${BUNDLE_VAR_deployment_user_name}\",
                 \"add\": [\"MANAGE\"]
               }
             ]
@@ -91,7 +92,7 @@ jobs:
                 \"add\": [\"MANAGE\"]
               },
               {
-                \"principal\": \"REDACTED_DEPLOYMENT_USER_NAME\",
+                \"principal\": \"${BUNDLE_VAR_deployment_user_name}\",
                 \"add\": [\"MANAGE\"]
               }
             ]

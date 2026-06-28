@@ -5,7 +5,7 @@ resources:
       comment: Schema for the AdventureWorks data warehouse dimensional model
       catalog_name: ${var.catalog}
       grants:
-        - principal: REDACTED_DEPLOYMENT_USER_NAME
+        - principal: ${var.deployment_user_name}
           privileges:
             - MANAGE
         - principal: ${var.deployment_service_principal_name}

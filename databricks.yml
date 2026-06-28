@@ -16,7 +16,8 @@ variables:
     description: The schema to use
   deployment_service_principal_name:
     description: The service principal used by CI/CD deployments
-    default: REDACTED_DEPLOYMENT_SERVICE_PRINCIPAL_NAME
+  deployment_user_name:
+    description: The user that owns and manages the prod bundle deployment
 
 targets:
   dev:
@@ -31,17 +32,17 @@ targets:
     variables:
       catalog: adventure_works_dw
       schema: ${workspace.current_user.short_name}
+      deployment_user_name: ${workspace.current_user.userName}
   prod:
     mode: production
     workspace:
       host: https://dbc-911569fe-22cc.cloud.databricks.com
-      # We explicitly deploy to /Workspace/Users/REDACTED_DEPLOYMENT_USER_NAME to make sure we only have a single copy.
-      root_path: /Workspace/Users/REDACTED_DEPLOYMENT_USER_NAME/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/${var.deployment_user_name}/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: adventure_works_dw
       schema: prod
     permissions:
-      - user_name: REDACTED_DEPLOYMENT_USER_NAME
+      - user_name: ${var.deployment_user_name}
         level: CAN_MANAGE
       - service_principal_name: ${var.deployment_service_principal_name}
         level: CAN_MANAGE
