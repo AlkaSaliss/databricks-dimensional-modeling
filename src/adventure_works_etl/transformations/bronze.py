@@ -58,11 +58,9 @@ def bronze_ingestion_factory(src_table):
         inv="count_src == count_tgt",
     )
     def count_verification():
-        return (
-            spark.createDataFrame(
-                [[spark.read.format("json").load(src_path).count(), spark.table(tgt_table_name).count()]],
-                ["count_src", "count_tgt"]
-            )
+        return spark.createDataFrame(
+            [[spark.read.format("json").load(src_path).count(), spark.table(tgt_table_name).count()]],
+            ["count_src", "count_tgt"],
         )
 
     return bronze_ingestion

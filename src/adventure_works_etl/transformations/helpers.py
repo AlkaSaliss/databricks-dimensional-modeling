@@ -6,19 +6,15 @@ from pyspark.sql.types import DoubleType, StructField, StructType
 
 
 def record_hash(*cols):
-    return F.sha2(
-        F.concat_ws(
-            "|",
-            *[F.coalesce(F.col(c).cast("string"), F.lit("")) for c in cols]
-        ),
-        256
-    )
+    return F.sha2(F.concat_ws("|", *[F.coalesce(F.col(c).cast("string"), F.lit("")) for c in cols]), 256)
 
 
-spatial_schema = StructType([
-    StructField("latitude", DoubleType(), True),
-    StructField("longitude", DoubleType(), True),
-])
+spatial_schema = StructType(
+    [
+        StructField("latitude", DoubleType(), True),
+        StructField("longitude", DoubleType(), True),
+    ]
+)
 
 
 @F.udf(spatial_schema)

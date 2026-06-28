@@ -9,12 +9,11 @@ from transformations.helpers import parse_spatial_location, record_hash
     comment="Cleaned incremental Person.Person records.",
     table_properties={
         "clusterBy": "auto",
-    }
+    },
 )
-@dp.expect_all_or_drop({
-    "valid_business_entity_id": "business_entity_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
+@dp.expect_all_or_drop(
+    {"valid_business_entity_id": "business_entity_id IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"}
+)
 def silver_person():
     return (
         spark.readStream.table("bronze_person_person")
@@ -32,7 +31,7 @@ def silver_person():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
@@ -44,8 +43,8 @@ def silver_person():
                 "middle_name",
                 "last_name",
                 "suffix",
-                "email_promotion"
-            )
+                "email_promotion",
+            ),
         )
     )
 
@@ -55,13 +54,15 @@ def silver_person():
     comment="Cleaned incremental Person.EmailAddress records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_business_entity_id": "business_entity_id IS NOT NULL",
+        "valid_email_address_id": "email_address_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_business_entity_id": "business_entity_id IS NOT NULL",
-    "valid_email_address_id": "email_address_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
 def silver_person_email_address():
     return (
         spark.readStream.table("bronze_person_emailaddress")
@@ -73,12 +74,9 @@ def silver_person_email_address():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
-        .withColumn(
-            "record_hash",
-            record_hash("email_address")
-        )
+        .withColumn("record_hash", record_hash("email_address"))
     )
 
 
@@ -87,15 +85,17 @@ def silver_person_email_address():
     comment="Cleaned incremental Person.Address records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_address_id": "address_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
+        "valid_spatial_parse": "spatial_location_raw IS NULL OR (latitude IS NOT NULL AND longitude IS NOT NULL)",
+        "valid_latitude_range": "latitude IS NULL OR (latitude BETWEEN -90 AND 90)",
+        "valid_longitude_range": "longitude IS NULL OR (longitude BETWEEN -180 AND 180)",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_address_id": "address_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL",
-    "valid_spatial_parse": "spatial_location_raw IS NULL OR (latitude IS NOT NULL AND longitude IS NOT NULL)",
-    "valid_latitude_range": "latitude IS NULL OR (latitude BETWEEN -90 AND 90)",
-    "valid_longitude_range": "longitude IS NULL OR (longitude BETWEEN -180 AND 180)"
-})
 def silver_person_address():
     return (
         spark.readStream.table("bronze_person_address")
@@ -114,18 +114,13 @@ def silver_person_address():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
             record_hash(
-                "address_line_1",
-                "address_line_2",
-                "city",
-                "state_province_id",
-                "postal_code",
-                "spatial_location_raw"
-            )
+                "address_line_1", "address_line_2", "city", "state_province_id", "postal_code", "spatial_location_raw"
+            ),
         )
     )
 
@@ -135,13 +130,15 @@ def silver_person_address():
     comment="Cleaned incremental Person.StateProvince records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_state_province_id": "state_province_id IS NOT NULL",
+        "valid_country_region_code": "country_region_code IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_state_province_id": "state_province_id IS NOT NULL",
-    "valid_country_region_code": "country_region_code IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
 def silver_person_state_province():
     return (
         spark.readStream.table("bronze_person_stateprovince")
@@ -156,7 +153,7 @@ def silver_person_state_province():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
@@ -165,8 +162,8 @@ def silver_person_state_province():
                 "country_region_code",
                 "is_only_state_province_flag",
                 "state_province_name",
-                "territory_id"
-            )
+                "territory_id",
+            ),
         )
     )
 
@@ -176,12 +173,11 @@ def silver_person_state_province():
     comment="Cleaned incremental Person.CountryRegion records.",
     table_properties={
         "clusterBy": "auto",
-    }
+    },
 )
-@dp.expect_all_or_drop({
-    "valid_country_region_code": "country_region_code IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
+@dp.expect_all_or_drop(
+    {"valid_country_region_code": "country_region_code IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"}
+)
 def silver_person_country_region():
     return (
         spark.readStream.table("bronze_person_countryregion")
@@ -191,12 +187,9 @@ def silver_person_country_region():
             F.to_timestamp("ModifiedDate").alias("modified_at"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
-        .withColumn(
-            "record_hash",
-            record_hash("country_region_name")
-        )
+        .withColumn("record_hash", record_hash("country_region_name"))
     )
 
 
@@ -204,25 +197,28 @@ def silver_person_country_region():
 # Production
 # ---------------------------------------------------------------------
 
+
 @dp.table(
     name="silver_product",
     comment="Cleaned incremental Production.Product records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_product_id": "product_id IS NOT NULL",
+        "valid_product_number": "product_number IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
+        "valid_safety_stock_level": "safety_stock_level >= 0",
+        "valid_reorder_point": "reorder_point >= 0",
+        "valid_standard_cost": "standard_cost >= 0",
+        "valid_list_price": "list_price >= 0",
+        "valid_weight": "weight IS NULL OR weight >= 0",
+        "valid_days_to_manufacture": "days_to_manufacture >= 0",
+        "valid_sell_date_range": "sell_end_date IS NULL OR sell_start_date IS NULL OR sell_end_date >= sell_start_date",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_product_id": "product_id IS NOT NULL",
-    "valid_product_number": "product_number IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL",
-    "valid_safety_stock_level": "safety_stock_level >= 0",
-    "valid_reorder_point": "reorder_point >= 0",
-    "valid_standard_cost": "standard_cost >= 0",
-    "valid_list_price": "list_price >= 0",
-    "valid_weight": "weight IS NULL OR weight >= 0",
-    "valid_days_to_manufacture": "days_to_manufacture >= 0",
-    "valid_sell_date_range": "sell_end_date IS NULL OR sell_start_date IS NULL OR sell_end_date >= sell_start_date"
-})
 def silver_product():
     return (
         spark.readStream.table("bronze_production_product")
@@ -253,7 +249,7 @@ def silver_product():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
@@ -278,8 +274,8 @@ def silver_product():
                 "product_subcategory_id",
                 "product_model_id",
                 "sell_start_date",
-                "sell_end_date"
-            )
+                "sell_end_date",
+            ),
         )
     )
 
@@ -289,13 +285,15 @@ def silver_product():
     comment="Cleaned incremental Production.ProductSubcategory records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_product_subcategory_id": "product_subcategory_id IS NOT NULL",
+        "valid_product_category_id": "product_category_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_product_subcategory_id": "product_subcategory_id IS NOT NULL",
-    "valid_product_category_id": "product_category_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
 def silver_product_subcategory():
     return (
         spark.readStream.table("bronze_production_productsubcategory")
@@ -307,12 +305,9 @@ def silver_product_subcategory():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
-        .withColumn(
-            "record_hash",
-            record_hash("product_category_id", "product_subcategory_name")
-        )
+        .withColumn("record_hash", record_hash("product_category_id", "product_subcategory_name"))
     )
 
 
@@ -321,12 +316,11 @@ def silver_product_subcategory():
     comment="Cleaned incremental Production.ProductCategory records.",
     table_properties={
         "clusterBy": "auto",
-    }
+    },
 )
-@dp.expect_all_or_drop({
-    "valid_product_category_id": "product_category_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
+@dp.expect_all_or_drop(
+    {"valid_product_category_id": "product_category_id IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"}
+)
 def silver_product_category():
     return (
         spark.readStream.table("bronze_production_productcategory")
@@ -337,12 +331,9 @@ def silver_product_category():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
-        .withColumn(
-            "record_hash",
-            record_hash("product_category_name")
-        )
+        .withColumn("record_hash", record_hash("product_category_name"))
     )
 
 
@@ -350,17 +341,15 @@ def silver_product_category():
 # Sales
 # ---------------------------------------------------------------------
 
+
 @dp.table(
     name="silver_sales_customer",
     comment="Cleaned incremental Sales.Customer records.",
     table_properties={
         "clusterBy": "auto",
-    }
+    },
 )
-@dp.expect_all_or_drop({
-    "valid_customer_id": "customer_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
+@dp.expect_all_or_drop({"valid_customer_id": "customer_id IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"})
 def silver_sales_customer():
     return (
         spark.readStream.table("bronze_sales_customer")
@@ -374,17 +363,9 @@ def silver_sales_customer():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "person_id",
-                "store_id",
-                "territory_id",
-                "account_number"
-            )
-        )
+        .withColumn("record_hash", record_hash("person_id", "store_id", "territory_id", "account_number"))
     )
 
 
@@ -393,21 +374,23 @@ def silver_sales_customer():
     comment="Cleaned incremental Sales.SalesOrderHeader records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_sales_order_id": "sales_order_id IS NOT NULL",
+        "valid_sales_order_number": "sales_order_number IS NOT NULL",
+        "valid_customer_id": "customer_id IS NOT NULL",
+        "valid_order_date": "order_date IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
+        "valid_due_date": "due_date IS NULL OR due_date >= order_date",
+        "valid_ship_date": "ship_date IS NULL OR ship_date >= order_date",
+        "valid_sub_total": "sub_total >= 0",
+        "valid_tax_amount": "tax_amount >= 0",
+        "valid_freight": "freight >= 0",
+        "valid_total_due": "total_due >= 0",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_sales_order_id": "sales_order_id IS NOT NULL",
-    "valid_sales_order_number": "sales_order_number IS NOT NULL",
-    "valid_customer_id": "customer_id IS NOT NULL",
-    "valid_order_date": "order_date IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL",
-    "valid_due_date": "due_date IS NULL OR due_date >= order_date",
-    "valid_ship_date": "ship_date IS NULL OR ship_date >= order_date",
-    "valid_sub_total": "sub_total >= 0",
-    "valid_tax_amount": "tax_amount >= 0",
-    "valid_freight": "freight >= 0",
-    "valid_total_due": "total_due >= 0"
-})
 def silver_sales_order_header():
     return (
         spark.readStream.table("bronze_sales_salesorderheader")
@@ -439,7 +422,7 @@ def silver_sales_order_header():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
@@ -465,8 +448,8 @@ def silver_sales_order_header():
                 "sub_total",
                 "tax_amount",
                 "freight",
-                "total_due"
-            )
+                "total_due",
+            ),
         )
     )
 
@@ -476,19 +459,21 @@ def silver_sales_order_header():
     comment="Cleaned incremental Sales.SalesOrderDetail records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_sales_order_id": "sales_order_id IS NOT NULL",
+        "valid_sales_order_detail_id": "sales_order_detail_id IS NOT NULL",
+        "valid_product_id": "product_id IS NOT NULL",
+        "valid_special_offer_id": "special_offer_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
+        "valid_order_quantity": "order_quantity > 0",
+        "valid_unit_price": "unit_price >= 0",
+        "valid_unit_price_discount": "unit_price_discount BETWEEN 0 AND 1",
+        "valid_line_total": "line_total >= 0",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_sales_order_id": "sales_order_id IS NOT NULL",
-    "valid_sales_order_detail_id": "sales_order_detail_id IS NOT NULL",
-    "valid_product_id": "product_id IS NOT NULL",
-    "valid_special_offer_id": "special_offer_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL",
-    "valid_order_quantity": "order_quantity > 0",
-    "valid_unit_price": "unit_price >= 0",
-    "valid_unit_price_discount": "unit_price_discount BETWEEN 0 AND 1",
-    "valid_line_total": "line_total >= 0"
-})
 def silver_sales_order_detail():
     return (
         spark.readStream.table("bronze_sales_salesorderdetail")
@@ -506,7 +491,7 @@ def silver_sales_order_detail():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
@@ -519,8 +504,8 @@ def silver_sales_order_detail():
                 "special_offer_id",
                 "unit_price",
                 "unit_price_discount",
-                "line_total"
-            )
+                "line_total",
+            ),
         )
     )
 
@@ -530,16 +515,18 @@ def silver_sales_order_detail():
     comment="Cleaned incremental Sales.SalesTerritory records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_territory_id": "territory_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
+        "valid_sales_ytd": "sales_ytd >= 0",
+        "valid_sales_last_year": "sales_last_year >= 0",
+        "valid_cost_ytd": "cost_ytd >= 0",
+        "valid_cost_last_year": "cost_last_year >= 0",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_territory_id": "territory_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL",
-    "valid_sales_ytd": "sales_ytd >= 0",
-    "valid_sales_last_year": "sales_last_year >= 0",
-    "valid_cost_ytd": "cost_ytd >= 0",
-    "valid_cost_last_year": "cost_last_year >= 0"
-})
 def silver_sales_territory():
     return (
         spark.readStream.table("bronze_sales_salesterritory")
@@ -556,7 +543,7 @@ def silver_sales_territory():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
@@ -567,8 +554,8 @@ def silver_sales_territory():
                 "sales_ytd",
                 "sales_last_year",
                 "cost_ytd",
-                "cost_last_year"
-            )
+                "cost_last_year",
+            ),
         )
     )
 
@@ -578,16 +565,18 @@ def silver_sales_territory():
     comment="Cleaned incremental Sales.SpecialOffer records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_special_offer_id": "special_offer_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
+        "valid_discount_pct": "discount_pct BETWEEN 0 AND 1",
+        "valid_min_qty": "min_qty >= 0",
+        "valid_max_qty": "max_qty IS NULL OR max_qty >= min_qty",
+        "valid_offer_date_range": "end_date >= start_date",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_special_offer_id": "special_offer_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL",
-    "valid_discount_pct": "discount_pct BETWEEN 0 AND 1",
-    "valid_min_qty": "min_qty >= 0",
-    "valid_max_qty": "max_qty IS NULL OR max_qty >= min_qty",
-    "valid_offer_date_range": "end_date >= start_date"
-})
 def silver_sales_special_offer():
     return (
         spark.readStream.table("bronze_sales_specialoffer")
@@ -605,7 +594,7 @@ def silver_sales_special_offer():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
@@ -617,8 +606,8 @@ def silver_sales_special_offer():
                 "start_date",
                 "end_date",
                 "min_qty",
-                "max_qty"
-            )
+                "max_qty",
+            ),
         )
     )
 
@@ -628,13 +617,15 @@ def silver_sales_special_offer():
     comment="Cleaned incremental Sales.SpecialOfferProduct bridge records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_special_offer_id": "special_offer_id IS NOT NULL",
+        "valid_product_id": "product_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_special_offer_id": "special_offer_id IS NOT NULL",
-    "valid_product_id": "product_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL"
-})
 def silver_sales_special_offer_product():
     return (
         spark.readStream.table("bronze_sales_specialofferproduct")
@@ -645,12 +636,9 @@ def silver_sales_special_offer_product():
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
-        .withColumn(
-            "record_hash",
-            record_hash("special_offer_id", "product_id")
-        )
+        .withColumn("record_hash", record_hash("special_offer_id", "product_id"))
     )
 
 
@@ -659,16 +647,18 @@ def silver_sales_special_offer_product():
     comment="Cleaned incremental Sales.CurrencyRate records.",
     table_properties={
         "clusterBy": "auto",
+    },
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_currency_rate_id": "currency_rate_id IS NOT NULL",
+        "valid_modified_at": "modified_at IS NOT NULL",
+        "valid_from_currency_code": "LENGTH(from_currency_code) = 3",
+        "valid_to_currency_code": "LENGTH(to_currency_code) = 3",
+        "valid_average_rate": "average_rate > 0",
+        "valid_end_of_day_rate": "end_of_day_rate > 0",
     }
 )
-@dp.expect_all_or_drop({
-    "valid_currency_rate_id": "currency_rate_id IS NOT NULL",
-    "valid_modified_at": "modified_at IS NOT NULL",
-    "valid_from_currency_code": "LENGTH(from_currency_code) = 3",
-    "valid_to_currency_code": "LENGTH(to_currency_code) = 3",
-    "valid_average_rate": "average_rate > 0",
-    "valid_end_of_day_rate": "end_of_day_rate > 0"
-})
 def silver_sales_currency_rate():
     return (
         spark.readStream.table("bronze_sales_currencyrate")
@@ -682,16 +672,12 @@ def silver_sales_currency_rate():
             F.to_timestamp("ModifiedDate").alias("modified_at"),
             F.col("__source_file_name"),
             F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time")
+            F.current_timestamp().alias("__processing_time"),
         )
         .withColumn(
             "record_hash",
             record_hash(
-                "currency_rate_date",
-                "from_currency_code",
-                "to_currency_code",
-                "average_rate",
-                "end_of_day_rate"
-            )
+                "currency_rate_date", "from_currency_code", "to_currency_code", "average_rate", "end_of_day_rate"
+            ),
         )
     )
