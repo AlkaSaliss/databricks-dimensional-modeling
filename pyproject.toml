@@ -1,0 +1,27 @@
+[project]
+name = "databricks-dimensional-modeling"
+version = "0.1.0"
+description = "Databricks Dimensional Modeling"
+readme = "README.md"
+authors = [{ name = "Mahamadou Aboubacar" }]
+
+
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "databricks-connect>=17.0,<18",
+    "databricks-dlt",
+    "ipykernel",
+    "pre-commit",
+    "pytest",
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 120
+builtins = ["spark", "dbutils"]
+
+[tool.ruff.lint.per-file-ignores]
+"__builtins__.pyi" = ["F403"]

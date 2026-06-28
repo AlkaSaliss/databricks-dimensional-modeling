@@ -18,6 +18,12 @@ variables:
     description: The service principal used by CI/CD deployments
   deployment_user_name:
     description: The user that owns and manages the prod bundle deployment
+  pipeline_development_mode:
+    description: Whether to run the pipeline in development mode
+    default: true
+  event_log_schema:
+    description: The schema to use for event logs
+    default: logs
 
 targets:
   dev:
@@ -32,7 +38,10 @@ targets:
     variables:
       catalog: adventure_works_dw
       schema: ${workspace.current_user.short_name}
+      event_log_schema: dev_${workspace.current_user.short_name}_logs
       deployment_user_name: ${workspace.current_user.userName}
+    run_as:
+      user_name: ${workspace.current_user.userName}
   prod:
     mode: production
     workspace:
@@ -41,6 +50,9 @@ targets:
     variables:
       catalog: adventure_works_dw
       schema: prod
+      pipeline_development_mode: false
+    run_as:
+      service_principal_name: ${var.deployment_service_principal_name}
     permissions:
       - user_name: ${var.deployment_user_name}
         level: CAN_MANAGE

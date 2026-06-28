@@ -11,3 +11,14 @@ resources:
         - principal: ${var.deployment_service_principal_name}
           privileges:
             - MANAGE
+    logs:
+      name: logs
+      comment: Schema for pipelines logs
+      catalog_name: ${var.catalog}
+      grants:
+        - principal: ${var.deployment_user_name}
+          privileges:
+            - MANAGE
+        - principal: ${var.deployment_service_principal_name}
+          privileges:
+            - MANAGE

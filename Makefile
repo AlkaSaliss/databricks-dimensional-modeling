@@ -15,3 +15,19 @@ help: ## Display this help message
 validate-bundle:
 	@echo "Validating bundle $(TARGET) target..."
 	@databricks bundle validate --target $(TARGET)
+
+## Show planned resources
+plan-bundle:
+	@echo "Showing planned resources..."
+	@databricks bundle plan --target $(TARGET)
+
+## Deploy Bundle
+deploy-bundle:
+	@echo "Deploying bundle $(TARGET) target..."
+	@databricks bundle deploy --target $(TARGET)
+
+
+## Run pre-commit hooks
+pre-commit:
+	@echo "Running pre-commit hooks..."
+	@uv run pre-commit run --all-files --show-diff-on-failure

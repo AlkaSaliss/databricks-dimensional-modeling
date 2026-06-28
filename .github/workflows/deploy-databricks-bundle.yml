@@ -14,9 +14,32 @@ env:
   BUNDLE_VAR_deployment_user_name: ${{ secrets.DATABRICKS_DEPLOYMENT_USER_NAME }}
 
 jobs:
+  pre-commit:
+    name: Pre-commit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --only-group dev
+
+      - name: Run pre-commit
+        run: uv run pre-commit run --all-files
+
   deploy-dev:
     name: Deploy dev
     if: github.ref != 'refs/heads/main'
+    needs: pre-commit
     runs-on: ubuntu-latest
 
     steps:
@@ -53,6 +76,7 @@ jobs:
   plan-prod:
     name: Plan prod
     if: github.ref == 'refs/heads/main'
+    needs: pre-commit
     runs-on: ubuntu-latest
 
     steps:
