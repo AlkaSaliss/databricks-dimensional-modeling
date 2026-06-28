@@ -22,14 +22,14 @@ list_tables = [
 ]
 
 
-def raw_data_extraction_factory(src_table):
+def bronze_ingestion_factory(src_table):
     src_path = f"{RAW_DATA_PATH}/{src_table}"
-    src_table_name = src_table.split(".")[-1]
-    tgt_table_name = f"{src_table_name}_bronze"
+    sch, tbl = src_table.split(".")
+    tgt_table_name = f"bronze_{sch}_{tbl}"
 
     dp.create_streaming_table(
         name=tgt_table_name,
-        comment=f"Raw data extraction for table: {src_table_name}",
+        comment=f"Raw data extraction for table: {src_table}",
         table_properties={
             "clusterBy": "auto",
         },
@@ -39,20 +39,19 @@ def raw_data_extraction_factory(src_table):
         target=tgt_table_name,
         name=f"{tgt_table_name}_flow",
     )
-    def raw_data_extraction():
+    def bronze_ingestion():
         return (
             spark.readStream.format("cloudFiles")
             .option("cloudFiles.format", "json")
             .option("cloudFiles.inferColumnTypes", "true")
-            # .option("cloudFiles.useManagedFileEvents", True)
             .load(src_path)
-            .withColumn("source_file_name", F.col("_metadata.file_path"))
-            .withColumn("_ingestion_time", F.current_timestamp())
+            .withColumn("__source_file_name", F.col("_metadata.file_path"))
+            .withColumn("__ingestion_time", F.current_timestamp())
         )
 
     @dp.view(
         name=f"v_{tgt_table_name}_count_verification",
-        comment=f"Count verification for table: {src_table_name}",
+        comment=f"Count verification for table: {tgt_table_name}",
     )
     @dp.expect_or_fail(
         name=f"{tgt_table_name}_count_verification",
@@ -66,8 +65,8 @@ def raw_data_extraction_factory(src_table):
             )
         )
 
-    return raw_data_extraction
+    return bronze_ingestion
 
 
 for src_table in list_tables:
-    raw_data_extraction_factory(src_table)
+    bronze_ingestion_factory(src_table)
