@@ -1,6 +1,7 @@
 """Gold-layer dimensional model definitions."""
 
 from pyspark import pipelines as dp
+from pyspark.sql import Window
 from pyspark.sql import functions as F
 
 from transformations.helpers import record_hash
@@ -312,8 +313,7 @@ def stg_dim_currency():
     )
     inferred = (
         spark.read.table("silver_sales_order_header")
-        .select("currency_rate_id")
-        .where(F.col("currency_rate_id").isNotNull())
+        .select(F.coalesce(F.col("currency_rate_id"), F.lit(-1)).alias("currency_rate_id"))
         .distinct()
         .join(actual.select("currency_rate_id"), "currency_rate_id", "left_anti")
         .select(
@@ -555,3 +555,149 @@ dp.create_auto_cdc_from_snapshot_flow(
 # ---------------------------------------------------------------------
 # Facts
 # ---------------------------------------------------------------------
+
+
+@dp.view(
+    name="stg_fact_internet_sales",
+    comment="Internet Sales fact staging view at sales order line grain.",
+)
+def stg_fact_internet_sales():
+    detail = spark.read.table("silver_sales_order_detail").alias("detail")
+    header = spark.read.table("silver_sales_order_header").alias("header")
+    product = (
+        spark.read.table("dim_product")
+        .select(
+            "product_id",
+            "product_key",
+            F.col("__START_AT").alias("product_start_at"),
+            F.col("__END_AT").alias("product_end_at"),
+        )
+        .withColumn("product_first_start_at", F.min("product_start_at").over(Window.partitionBy("product_id")))
+        .alias("product")
+    )
+    customer = (
+        spark.read.table("dim_customer")
+        .select(
+            "customer_id",
+            "customer_key",
+            F.col("__START_AT").alias("customer_start_at"),
+            F.col("__END_AT").alias("customer_end_at"),
+        )
+        .withColumn("customer_first_start_at", F.min("customer_start_at").over(Window.partitionBy("customer_id")))
+        .alias("customer")
+    )
+    currency = (
+        spark.read.table("dim_currency")
+        .select(
+            "currency_rate_id",
+            "currency_key",
+            F.col("__START_AT").alias("currency_start_at"),
+            F.col("__END_AT").alias("currency_end_at"),
+        )
+        .withColumn(
+            "currency_first_start_at",
+            F.min("currency_start_at").over(Window.partitionBy("currency_rate_id")),
+        )
+        .alias("currency")
+    )
+    territory = (
+        spark.read.table("dim_sales_territory")
+        .select(
+            "territory_id",
+            "sales_territory_key",
+            F.col("__START_AT").alias("territory_start_at"),
+            F.col("__END_AT").alias("territory_end_at"),
+        )
+        .withColumn(
+            "territory_first_start_at",
+            F.min("territory_start_at").over(Window.partitionBy("territory_id")),
+        )
+        .alias("territory")
+    )
+    promotion = spark.read.table("dim_promotion").select("special_offer_id", "promotion_key").alias("promotion")
+    order_date = F.col("header.order_date")
+    sales_amount_before_discount = F.col("detail.unit_price") * F.col("detail.order_quantity")
+
+    return (
+        detail.join(header, F.col("detail.sales_order_id") == F.col("header.sales_order_id"), "inner")
+        .where(F.col("header.online_order_flag"))
+        .join(
+            product,
+            (F.col("detail.product_id") == F.col("product.product_id"))
+            & (
+                (order_date >= F.col("product.product_start_at"))
+                | (F.col("product.product_start_at") == F.col("product.product_first_start_at"))
+            )
+            & ((order_date < F.col("product.product_end_at")) | F.col("product.product_end_at").isNull()),
+            "left",
+        )
+        .join(
+            customer,
+            (F.col("header.customer_id") == F.col("customer.customer_id"))
+            & (
+                (order_date >= F.col("customer.customer_start_at"))
+                | (F.col("customer.customer_start_at") == F.col("customer.customer_first_start_at"))
+            )
+            & ((order_date < F.col("customer.customer_end_at")) | F.col("customer.customer_end_at").isNull()),
+            "left",
+        )
+        .join(promotion, F.col("detail.special_offer_id") == F.col("promotion.special_offer_id"), "left")
+        .join(
+            currency,
+            (F.coalesce(F.col("header.currency_rate_id"), F.lit(-1)) == F.col("currency.currency_rate_id"))
+            & (
+                (order_date >= F.col("currency.currency_start_at"))
+                | (F.col("currency.currency_start_at") == F.col("currency.currency_first_start_at"))
+            )
+            & ((order_date < F.col("currency.currency_end_at")) | F.col("currency.currency_end_at").isNull()),
+            "left",
+        )
+        .join(
+            territory,
+            (F.col("header.territory_id") == F.col("territory.territory_id"))
+            & (
+                (order_date >= F.col("territory.territory_start_at"))
+                | (F.col("territory.territory_start_at") == F.col("territory.territory_first_start_at"))
+            )
+            & ((order_date < F.col("territory.territory_end_at")) | F.col("territory.territory_end_at").isNull()),
+            "left",
+        )
+        .select(
+            F.col("detail.sales_order_id"),
+            F.col("detail.sales_order_detail_id"),
+            F.col("header.sales_order_number"),
+            F.col("product.product_key"),
+            F.col("customer.customer_key"),
+            F.col("promotion.promotion_key"),
+            F.col("currency.currency_key"),
+            F.col("territory.sales_territory_key"),
+            F.date_format("header.order_date", "yyyyMMdd").cast("int").alias("order_date_key"),
+            F.date_format("header.due_date", "yyyyMMdd").cast("int").alias("due_date_key"),
+            F.date_format("header.ship_date", "yyyyMMdd").cast("int").alias("ship_date_key"),
+            F.col("detail.order_quantity"),
+            F.col("detail.unit_price"),
+            F.col("detail.line_total").alias("sales_amount"),
+            sales_amount_before_discount.alias("sales_amount_before_discount"),
+            (sales_amount_before_discount * F.col("detail.unit_price_discount")).alias("discount_amount"),
+            F.greatest(F.col("detail.modified_at"), F.col("header.modified_at")).alias("modified_at"),
+            F.col("detail.__source_file_name"),
+            F.col("detail.__ingestion_time"),
+            F.current_timestamp().alias("__processing_time"),
+        )
+    )
+
+
+dp.create_streaming_table(
+    name="fact_internet_sales",
+    comment="Internet Sales fact table at sales order line grain.",
+    table_properties={
+        "clusterBy": "auto",
+    },
+)
+
+dp.create_auto_cdc_from_snapshot_flow(
+    target="fact_internet_sales",
+    source="stg_fact_internet_sales",
+    keys=["sales_order_id", "sales_order_detail_id"],
+    stored_as_scd_type=1,
+)
