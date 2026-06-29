@@ -5,8 +5,12 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType, StructField, StructType
 
 
-def record_hash(*cols):
-    return F.sha2(F.concat_ws("|", *[F.coalesce(F.col(c).cast("string"), F.lit("")) for c in cols]), 256)
+def record_hash(*cols, namespace=None):
+    hash_cols = [F.coalesce(F.col(c).cast("string"), F.lit("")) for c in cols]
+    if namespace is not None:
+        hash_cols = [F.lit(namespace), *hash_cols]
+
+    return F.sha2(F.concat_ws("|", *hash_cols), 256)
 
 
 def individual_survey_field(xml_col, field_name):
