@@ -7,6 +7,28 @@ from pyspark.sql import functions as F
 from transformations.helpers import record_hash
 
 
+def gold_uniqueness_verification_factory(name, table_name, key_columns, where_clause=None):
+    @dp.table(
+        name=f"gold_{name}_uniqueness_check",
+        comment=f"Uniqueness verification for {table_name} on {', '.join(key_columns)}.",
+        table_properties={
+            "clusterBy": "auto",
+        },
+    )
+    @dp.expect_or_fail(
+        name=f"{name}_uniqueness_verification",
+        inv="record_count = 1",
+    )
+    def uniqueness_verification():
+        source = spark.table(table_name)
+        if where_clause is not None:
+            source = source.where(where_clause)
+
+        return source.groupBy(*key_columns).agg(F.count("*").alias("record_count"))
+
+    return uniqueness_verification
+
+
 # ---------------------------------------------------------------------
 # Staging views
 # ---------------------------------------------------------------------
@@ -15,6 +37,13 @@ from transformations.helpers import record_hash
 @dp.view(
     name="stg_dim_customer",
     comment="Customer dimension staging view from customer, person, and email silver records.",
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_customer_business_key": "customer_id IS NOT NULL",
+        "valid_customer_surrogate_key": "customer_key IS NOT NULL",
+        "valid_customer_modified_at": "modified_at IS NOT NULL",
+    }
 )
 def stg_dim_customer():
     customer = spark.read.table("silver_sales_customer").alias("customer")
@@ -168,6 +197,13 @@ def stg_dim_customer():
     name="stg_dim_product",
     comment="Product dimension staging view from product, subcategory, and category silver records.",
 )
+@dp.expect_all_or_drop(
+    {
+        "valid_product_business_key": "product_id IS NOT NULL",
+        "valid_product_surrogate_key": "product_key IS NOT NULL",
+        "valid_product_modified_at": "modified_at IS NOT NULL",
+    }
+)
 def stg_dim_product():
     product = spark.read.table("silver_product").alias("product")
     subcategory = spark.read.table("silver_product_subcategory").alias("subcategory")
@@ -272,6 +308,13 @@ def stg_dim_product():
     name="stg_dim_promotion",
     comment="Promotion dimension staging view from special offer silver records.",
 )
+@dp.expect_all_or_drop(
+    {
+        "valid_promotion_business_key": "special_offer_id IS NOT NULL",
+        "valid_promotion_surrogate_key": "promotion_key IS NOT NULL",
+        "valid_promotion_modified_at": "modified_at IS NOT NULL",
+    }
+)
 def stg_dim_promotion():
     return spark.read.table("silver_sales_special_offer").select(
         F.col("special_offer_id"),
@@ -294,6 +337,13 @@ def stg_dim_promotion():
 @dp.view(
     name="stg_dim_currency",
     comment="Currency dimension staging view from currency rate silver records.",
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_currency_business_key": "currency_rate_id IS NOT NULL",
+        "valid_currency_surrogate_key": "currency_key IS NOT NULL",
+        "valid_currency_modified_at": "modified_at IS NOT NULL",
+    }
 )
 def stg_dim_currency():
     inferred_modified_at = F.to_timestamp(F.lit("1900-01-01 00:00:00"))
@@ -338,6 +388,13 @@ def stg_dim_currency():
 @dp.view(
     name="stg_dim_sales_territory",
     comment="Sales territory dimension staging view from sales territory silver records.",
+)
+@dp.expect_all_or_drop(
+    {
+        "valid_sales_territory_business_key": "territory_id IS NOT NULL",
+        "valid_sales_territory_surrogate_key": "sales_territory_key IS NOT NULL",
+        "valid_sales_territory_modified_at": "modified_at IS NOT NULL",
+    }
 )
 def stg_dim_sales_territory():
     inferred_modified_at = F.to_timestamp(F.lit("1900-01-01 00:00:00"))
@@ -561,6 +618,25 @@ dp.create_auto_cdc_from_snapshot_flow(
     name="stg_fact_internet_sales",
     comment="Internet Sales fact staging view at sales order line grain.",
 )
+@dp.expect_all_or_drop(
+    {
+        "valid_fact_sales_order_id": "sales_order_id IS NOT NULL",
+        "valid_fact_sales_order_detail_id": "sales_order_detail_id IS NOT NULL",
+        "valid_fact_product_key": "product_key IS NOT NULL",
+        "valid_fact_customer_key": "customer_key IS NOT NULL",
+        "valid_fact_promotion_key": "promotion_key IS NOT NULL",
+        "valid_fact_currency_key": "currency_key IS NOT NULL",
+        "valid_fact_sales_territory_key": "sales_territory_key IS NOT NULL",
+        "valid_fact_order_date_key": "order_date_key IS NOT NULL",
+        "valid_fact_due_date_key": "due_date_key IS NOT NULL",
+        "valid_fact_order_quantity": "order_quantity > 0",
+        "valid_fact_unit_price": "unit_price >= 0",
+        "valid_fact_sales_amount": "sales_amount >= 0",
+        "valid_fact_sales_amount_before_discount": "sales_amount_before_discount >= 0",
+        "valid_fact_discount_amount": "discount_amount >= 0",
+        "valid_fact_modified_at": "modified_at IS NOT NULL",
+    }
+)
 def stg_fact_internet_sales():
     detail = spark.read.table("silver_sales_order_detail").alias("detail")
     header = spark.read.table("silver_sales_order_header").alias("header")
@@ -700,4 +776,42 @@ dp.create_auto_cdc_from_snapshot_flow(
     source="stg_fact_internet_sales",
     keys=["sales_order_id", "sales_order_detail_id"],
     stored_as_scd_type=1,
+)
+
+
+# ---------------------------------------------------------------------
+# Gold validation checks
+# ---------------------------------------------------------------------
+
+
+gold_uniqueness_verification_factory("dim_date_date_key", "dim_date", ["date_key"])
+gold_uniqueness_verification_factory("dim_promotion_special_offer_id", "dim_promotion", ["special_offer_id"])
+gold_uniqueness_verification_factory(
+    "dim_product_current_product_id",
+    "dim_product",
+    ["product_id"],
+    "__END_AT IS NULL",
+)
+gold_uniqueness_verification_factory(
+    "dim_currency_current_currency_rate_id",
+    "dim_currency",
+    ["currency_rate_id"],
+    "__END_AT IS NULL",
+)
+gold_uniqueness_verification_factory(
+    "dim_sales_territory_current_territory_id",
+    "dim_sales_territory",
+    ["territory_id"],
+    "__END_AT IS NULL",
+)
+gold_uniqueness_verification_factory(
+    "dim_customer_current_customer_id",
+    "dim_customer",
+    ["customer_id"],
+    "__END_AT IS NULL",
+)
+gold_uniqueness_verification_factory(
+    "fact_internet_sales_grain",
+    "fact_internet_sales",
+    ["sales_order_id", "sales_order_detail_id"],
 )

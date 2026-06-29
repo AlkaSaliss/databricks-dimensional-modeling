@@ -1,7 +1,7 @@
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
-from transformations.helpers import individual_survey_field, parse_spatial_location, record_hash
+from transformations.helpers import individual_survey_field, parse_spatial_location
 
 
 @dp.table(
@@ -30,52 +30,35 @@ def silver_person():
     number_cars_owned = individual_survey_field(demographics, "NumberCarsOwned")
     commute_distance = individual_survey_field(demographics, "CommuteDistance")
 
-    return (
-        spark.readStream.table("bronze_person_person")
-        .select(
-            F.col("BusinessEntityID").cast("long").alias("business_entity_id"),
-            F.col("PersonType").cast("string").alias("person_type"),
-            F.col("NameStyle").cast("boolean").alias("name_style"),
-            F.col("Title").cast("string").alias("title"),
-            F.col("FirstName").cast("string").alias("first_name"),
-            F.col("MiddleName").cast("string").alias("middle_name"),
-            F.col("LastName").cast("string").alias("last_name"),
-            F.col("Suffix").cast("string").alias("suffix"),
-            F.col("EmailPromotion").cast("int").alias("email_promotion"),
-            demographics.alias("demographics_raw"),
-            total_purchase_ytd.cast("decimal(18,4)").alias("total_purchase_ytd"),
-            F.to_date(date_first_purchase, "yyyy-MM-dd'Z'").alias("date_first_purchase"),
-            F.to_date(birth_date, "yyyy-MM-dd'Z'").alias("birth_date"),
-            marital_status.alias("marital_status"),
-            yearly_income.alias("yearly_income"),
-            gender.alias("gender"),
-            total_children.cast("int").alias("total_children"),
-            number_children_at_home.cast("int").alias("number_children_at_home"),
-            education.alias("education"),
-            occupation.alias("occupation"),
-            (home_owner_flag == F.lit("1")).alias("home_owner_flag"),
-            number_cars_owned.cast("int").alias("number_cars_owned"),
-            commute_distance.alias("commute_distance"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "person_type",
-                "name_style",
-                "title",
-                "first_name",
-                "middle_name",
-                "last_name",
-                "suffix",
-                "email_promotion",
-                "demographics_raw",
-            ),
-        )
+    return spark.readStream.table("bronze_person_person").select(
+        F.col("BusinessEntityID").cast("long").alias("business_entity_id"),
+        F.col("PersonType").cast("string").alias("person_type"),
+        F.col("NameStyle").cast("boolean").alias("name_style"),
+        F.col("Title").cast("string").alias("title"),
+        F.col("FirstName").cast("string").alias("first_name"),
+        F.col("MiddleName").cast("string").alias("middle_name"),
+        F.col("LastName").cast("string").alias("last_name"),
+        F.col("Suffix").cast("string").alias("suffix"),
+        F.col("EmailPromotion").cast("int").alias("email_promotion"),
+        demographics.alias("demographics_raw"),
+        total_purchase_ytd.cast("decimal(18,4)").alias("total_purchase_ytd"),
+        F.to_date(date_first_purchase, "yyyy-MM-dd'Z'").alias("date_first_purchase"),
+        F.to_date(birth_date, "yyyy-MM-dd'Z'").alias("birth_date"),
+        marital_status.alias("marital_status"),
+        yearly_income.alias("yearly_income"),
+        gender.alias("gender"),
+        total_children.cast("int").alias("total_children"),
+        number_children_at_home.cast("int").alias("number_children_at_home"),
+        education.alias("education"),
+        occupation.alias("occupation"),
+        (home_owner_flag == F.lit("1")).alias("home_owner_flag"),
+        number_cars_owned.cast("int").alias("number_cars_owned"),
+        commute_distance.alias("commute_distance"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -94,19 +77,15 @@ def silver_person():
     }
 )
 def silver_person_email_address():
-    return (
-        spark.readStream.table("bronze_person_emailaddress")
-        .select(
-            F.col("BusinessEntityID").cast("long").alias("business_entity_id"),
-            F.col("EmailAddressID").cast("long").alias("email_address_id"),
-            F.col("EmailAddress").cast("string").alias("email_address"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn("record_hash", record_hash("email_address"))
+    return spark.readStream.table("bronze_person_emailaddress").select(
+        F.col("BusinessEntityID").cast("long").alias("business_entity_id"),
+        F.col("EmailAddressID").cast("long").alias("email_address_id"),
+        F.col("EmailAddress").cast("string").alias("email_address"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -146,12 +125,6 @@ def silver_person_address():
             F.col("__ingestion_time"),
             F.current_timestamp().alias("__processing_time"),
         )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "address_line_1", "address_line_2", "city", "state_province_id", "postal_code", "spatial_location_raw"
-            ),
-        )
     )
 
 
@@ -170,31 +143,18 @@ def silver_person_address():
     }
 )
 def silver_person_state_province():
-    return (
-        spark.readStream.table("bronze_person_stateprovince")
-        .select(
-            F.col("StateProvinceID").cast("long").alias("state_province_id"),
-            F.col("StateProvinceCode").cast("string").alias("state_province_code"),
-            F.col("CountryRegionCode").cast("string").alias("country_region_code"),
-            F.col("IsOnlyStateProvinceFlag").cast("boolean").alias("is_only_state_province_flag"),
-            F.col("Name").cast("string").alias("state_province_name"),
-            F.col("TerritoryID").cast("long").alias("territory_id"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "state_province_code",
-                "country_region_code",
-                "is_only_state_province_flag",
-                "state_province_name",
-                "territory_id",
-            ),
-        )
+    return spark.readStream.table("bronze_person_stateprovince").select(
+        F.col("StateProvinceID").cast("long").alias("state_province_id"),
+        F.col("StateProvinceCode").cast("string").alias("state_province_code"),
+        F.col("CountryRegionCode").cast("string").alias("country_region_code"),
+        F.col("IsOnlyStateProvinceFlag").cast("boolean").alias("is_only_state_province_flag"),
+        F.col("Name").cast("string").alias("state_province_name"),
+        F.col("TerritoryID").cast("long").alias("territory_id"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -209,17 +169,13 @@ def silver_person_state_province():
     {"valid_country_region_code": "country_region_code IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"}
 )
 def silver_person_country_region():
-    return (
-        spark.readStream.table("bronze_person_countryregion")
-        .select(
-            F.col("CountryRegionCode").cast("string").alias("country_region_code"),
-            F.col("Name").cast("string").alias("country_region_name"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn("record_hash", record_hash("country_region_name"))
+    return spark.readStream.table("bronze_person_countryregion").select(
+        F.col("CountryRegionCode").cast("string").alias("country_region_code"),
+        F.col("Name").cast("string").alias("country_region_name"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -250,63 +206,34 @@ def silver_person_country_region():
     }
 )
 def silver_product():
-    return (
-        spark.readStream.table("bronze_production_product")
-        .select(
-            F.col("ProductID").cast("long").alias("product_id"),
-            F.col("ProductNumber").cast("string").alias("product_number"),
-            F.col("Name").cast("string").alias("product_name"),
-            F.col("MakeFlag").cast("boolean").alias("make_flag"),
-            F.col("FinishedGoodsFlag").cast("boolean").alias("finished_goods_flag"),
-            F.col("Color").cast("string").alias("color"),
-            F.col("SafetyStockLevel").cast("int").alias("safety_stock_level"),
-            F.col("ReorderPoint").cast("int").alias("reorder_point"),
-            F.col("StandardCost").cast("decimal(18,4)").alias("standard_cost"),
-            F.col("ListPrice").cast("decimal(18,4)").alias("list_price"),
-            F.col("Size").cast("string").alias("size"),
-            F.col("SizeUnitMeasureCode").cast("string").alias("size_unit_measure_code"),
-            F.col("WeightUnitMeasureCode").cast("string").alias("weight_unit_measure_code"),
-            F.col("Weight").cast("decimal(18,4)").alias("weight"),
-            F.col("DaysToManufacture").cast("int").alias("days_to_manufacture"),
-            F.col("ProductLine").cast("string").alias("product_line"),
-            F.col("Class").cast("string").alias("class"),
-            F.col("Style").cast("string").alias("style"),
-            F.col("ProductSubcategoryID").cast("long").alias("product_subcategory_id"),
-            F.col("ProductModelID").cast("long").alias("product_model_id"),
-            F.to_timestamp("SellStartDate").alias("sell_start_date"),
-            F.to_timestamp("SellEndDate").alias("sell_end_date"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "product_number",
-                "product_name",
-                "make_flag",
-                "finished_goods_flag",
-                "color",
-                "safety_stock_level",
-                "reorder_point",
-                "standard_cost",
-                "list_price",
-                "size",
-                "size_unit_measure_code",
-                "weight_unit_measure_code",
-                "weight",
-                "days_to_manufacture",
-                "product_line",
-                "class",
-                "style",
-                "product_subcategory_id",
-                "product_model_id",
-                "sell_start_date",
-                "sell_end_date",
-            ),
-        )
+    return spark.readStream.table("bronze_production_product").select(
+        F.col("ProductID").cast("long").alias("product_id"),
+        F.col("ProductNumber").cast("string").alias("product_number"),
+        F.col("Name").cast("string").alias("product_name"),
+        F.col("MakeFlag").cast("boolean").alias("make_flag"),
+        F.col("FinishedGoodsFlag").cast("boolean").alias("finished_goods_flag"),
+        F.col("Color").cast("string").alias("color"),
+        F.col("SafetyStockLevel").cast("int").alias("safety_stock_level"),
+        F.col("ReorderPoint").cast("int").alias("reorder_point"),
+        F.col("StandardCost").cast("decimal(18,4)").alias("standard_cost"),
+        F.col("ListPrice").cast("decimal(18,4)").alias("list_price"),
+        F.col("Size").cast("string").alias("size"),
+        F.col("SizeUnitMeasureCode").cast("string").alias("size_unit_measure_code"),
+        F.col("WeightUnitMeasureCode").cast("string").alias("weight_unit_measure_code"),
+        F.col("Weight").cast("decimal(18,4)").alias("weight"),
+        F.col("DaysToManufacture").cast("int").alias("days_to_manufacture"),
+        F.col("ProductLine").cast("string").alias("product_line"),
+        F.col("Class").cast("string").alias("class"),
+        F.col("Style").cast("string").alias("style"),
+        F.col("ProductSubcategoryID").cast("long").alias("product_subcategory_id"),
+        F.col("ProductModelID").cast("long").alias("product_model_id"),
+        F.to_timestamp("SellStartDate").alias("sell_start_date"),
+        F.to_timestamp("SellEndDate").alias("sell_end_date"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -325,19 +252,15 @@ def silver_product():
     }
 )
 def silver_product_subcategory():
-    return (
-        spark.readStream.table("bronze_production_productsubcategory")
-        .select(
-            F.col("ProductSubcategoryID").cast("long").alias("product_subcategory_id"),
-            F.col("ProductCategoryID").cast("long").alias("product_category_id"),
-            F.col("Name").cast("string").alias("product_subcategory_name"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn("record_hash", record_hash("product_category_id", "product_subcategory_name"))
+    return spark.readStream.table("bronze_production_productsubcategory").select(
+        F.col("ProductSubcategoryID").cast("long").alias("product_subcategory_id"),
+        F.col("ProductCategoryID").cast("long").alias("product_category_id"),
+        F.col("Name").cast("string").alias("product_subcategory_name"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -352,18 +275,14 @@ def silver_product_subcategory():
     {"valid_product_category_id": "product_category_id IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"}
 )
 def silver_product_category():
-    return (
-        spark.readStream.table("bronze_production_productcategory")
-        .select(
-            F.col("ProductCategoryID").cast("long").alias("product_category_id"),
-            F.col("Name").cast("string").alias("product_category_name"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn("record_hash", record_hash("product_category_name"))
+    return spark.readStream.table("bronze_production_productcategory").select(
+        F.col("ProductCategoryID").cast("long").alias("product_category_id"),
+        F.col("Name").cast("string").alias("product_category_name"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -381,21 +300,17 @@ def silver_product_category():
 )
 @dp.expect_all_or_drop({"valid_customer_id": "customer_id IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"})
 def silver_sales_customer():
-    return (
-        spark.readStream.table("bronze_sales_customer")
-        .select(
-            F.col("CustomerID").cast("long").alias("customer_id"),
-            F.col("PersonID").cast("long").alias("person_id"),
-            F.col("StoreID").cast("long").alias("store_id"),
-            F.col("TerritoryID").cast("long").alias("territory_id"),
-            F.col("AccountNumber").cast("string").alias("account_number"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn("record_hash", record_hash("person_id", "store_id", "territory_id", "account_number"))
+    return spark.readStream.table("bronze_sales_customer").select(
+        F.col("CustomerID").cast("long").alias("customer_id"),
+        F.col("PersonID").cast("long").alias("person_id"),
+        F.col("StoreID").cast("long").alias("store_id"),
+        F.col("TerritoryID").cast("long").alias("territory_id"),
+        F.col("AccountNumber").cast("string").alias("account_number"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -422,65 +337,35 @@ def silver_sales_customer():
     }
 )
 def silver_sales_order_header():
-    return (
-        spark.readStream.table("bronze_sales_salesorderheader")
-        .select(
-            F.col("SalesOrderID").cast("long").alias("sales_order_id"),
-            F.col("RevisionNumber").cast("int").alias("revision_number"),
-            F.to_timestamp("OrderDate").alias("order_date"),
-            F.to_timestamp("DueDate").alias("due_date"),
-            F.to_timestamp("ShipDate").alias("ship_date"),
-            F.col("Status").cast("int").alias("status"),
-            F.col("OnlineOrderFlag").cast("boolean").alias("online_order_flag"),
-            F.col("SalesOrderNumber").cast("string").alias("sales_order_number"),
-            F.col("PurchaseOrderNumber").cast("string").alias("purchase_order_number"),
-            F.col("AccountNumber").cast("string").alias("account_number"),
-            F.col("CustomerID").cast("long").alias("customer_id"),
-            F.col("SalesPersonID").cast("long").alias("sales_person_id"),
-            F.col("TerritoryID").cast("long").alias("territory_id"),
-            F.col("BillToAddressID").cast("long").alias("bill_to_address_id"),
-            F.col("ShipToAddressID").cast("long").alias("ship_to_address_id"),
-            F.col("ShipMethodID").cast("long").alias("ship_method_id"),
-            F.col("CreditCardID").cast("long").alias("credit_card_id"),
-            F.col("CreditCardApprovalCode").cast("string").alias("credit_card_approval_code"),
-            F.col("CurrencyRateID").cast("long").alias("currency_rate_id"),
-            F.col("SubTotal").cast("decimal(18,4)").alias("sub_total"),
-            F.col("TaxAmt").cast("decimal(18,4)").alias("tax_amount"),
-            F.col("Freight").cast("decimal(18,4)").alias("freight"),
-            F.col("TotalDue").cast("decimal(18,4)").alias("total_due"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "revision_number",
-                "order_date",
-                "due_date",
-                "ship_date",
-                "status",
-                "online_order_flag",
-                "sales_order_number",
-                "purchase_order_number",
-                "account_number",
-                "customer_id",
-                "sales_person_id",
-                "territory_id",
-                "bill_to_address_id",
-                "ship_to_address_id",
-                "ship_method_id",
-                "credit_card_id",
-                "credit_card_approval_code",
-                "currency_rate_id",
-                "sub_total",
-                "tax_amount",
-                "freight",
-                "total_due",
-            ),
-        )
+    return spark.readStream.table("bronze_sales_salesorderheader").select(
+        F.col("SalesOrderID").cast("long").alias("sales_order_id"),
+        F.col("RevisionNumber").cast("int").alias("revision_number"),
+        F.to_timestamp("OrderDate").alias("order_date"),
+        F.to_timestamp("DueDate").alias("due_date"),
+        F.to_timestamp("ShipDate").alias("ship_date"),
+        F.col("Status").cast("int").alias("status"),
+        F.col("OnlineOrderFlag").cast("boolean").alias("online_order_flag"),
+        F.col("SalesOrderNumber").cast("string").alias("sales_order_number"),
+        F.col("PurchaseOrderNumber").cast("string").alias("purchase_order_number"),
+        F.col("AccountNumber").cast("string").alias("account_number"),
+        F.col("CustomerID").cast("long").alias("customer_id"),
+        F.col("SalesPersonID").cast("long").alias("sales_person_id"),
+        F.col("TerritoryID").cast("long").alias("territory_id"),
+        F.col("BillToAddressID").cast("long").alias("bill_to_address_id"),
+        F.col("ShipToAddressID").cast("long").alias("ship_to_address_id"),
+        F.col("ShipMethodID").cast("long").alias("ship_method_id"),
+        F.col("CreditCardID").cast("long").alias("credit_card_id"),
+        F.col("CreditCardApprovalCode").cast("string").alias("credit_card_approval_code"),
+        F.col("CurrencyRateID").cast("long").alias("currency_rate_id"),
+        F.col("SubTotal").cast("decimal(18,4)").alias("sub_total"),
+        F.col("TaxAmt").cast("decimal(18,4)").alias("tax_amount"),
+        F.col("Freight").cast("decimal(18,4)").alias("freight"),
+        F.col("TotalDue").cast("decimal(18,4)").alias("total_due"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -505,38 +390,21 @@ def silver_sales_order_header():
     }
 )
 def silver_sales_order_detail():
-    return (
-        spark.readStream.table("bronze_sales_salesorderdetail")
-        .select(
-            F.col("SalesOrderID").cast("long").alias("sales_order_id"),
-            F.col("SalesOrderDetailID").cast("long").alias("sales_order_detail_id"),
-            F.col("CarrierTrackingNumber").cast("string").alias("carrier_tracking_number"),
-            F.col("OrderQty").cast("int").alias("order_quantity"),
-            F.col("ProductID").cast("long").alias("product_id"),
-            F.col("SpecialOfferID").cast("long").alias("special_offer_id"),
-            F.col("UnitPrice").cast("decimal(18,4)").alias("unit_price"),
-            F.col("UnitPriceDiscount").cast("decimal(18,4)").alias("unit_price_discount"),
-            F.col("LineTotal").cast("decimal(18,4)").alias("line_total"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "sales_order_id",
-                "sales_order_detail_id",
-                "carrier_tracking_number",
-                "order_quantity",
-                "product_id",
-                "special_offer_id",
-                "unit_price",
-                "unit_price_discount",
-                "line_total",
-            ),
-        )
+    return spark.readStream.table("bronze_sales_salesorderdetail").select(
+        F.col("SalesOrderID").cast("long").alias("sales_order_id"),
+        F.col("SalesOrderDetailID").cast("long").alias("sales_order_detail_id"),
+        F.col("CarrierTrackingNumber").cast("string").alias("carrier_tracking_number"),
+        F.col("OrderQty").cast("int").alias("order_quantity"),
+        F.col("ProductID").cast("long").alias("product_id"),
+        F.col("SpecialOfferID").cast("long").alias("special_offer_id"),
+        F.col("UnitPrice").cast("decimal(18,4)").alias("unit_price"),
+        F.col("UnitPriceDiscount").cast("decimal(18,4)").alias("unit_price_discount"),
+        F.col("LineTotal").cast("decimal(18,4)").alias("line_total"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -558,35 +426,20 @@ def silver_sales_order_detail():
     }
 )
 def silver_sales_territory():
-    return (
-        spark.readStream.table("bronze_sales_salesterritory")
-        .select(
-            F.col("TerritoryID").cast("long").alias("territory_id"),
-            F.col("Name").cast("string").alias("territory_name"),
-            F.col("CountryRegionCode").cast("string").alias("country_region_code"),
-            F.col("Group").cast("string").alias("territory_group"),
-            F.col("SalesYTD").cast("decimal(18,4)").alias("sales_ytd"),
-            F.col("SalesLastYear").cast("decimal(18,4)").alias("sales_last_year"),
-            F.col("CostYTD").cast("decimal(18,4)").alias("cost_ytd"),
-            F.col("CostLastYear").cast("decimal(18,4)").alias("cost_last_year"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "territory_name",
-                "country_region_code",
-                "territory_group",
-                "sales_ytd",
-                "sales_last_year",
-                "cost_ytd",
-                "cost_last_year",
-            ),
-        )
+    return spark.readStream.table("bronze_sales_salesterritory").select(
+        F.col("TerritoryID").cast("long").alias("territory_id"),
+        F.col("Name").cast("string").alias("territory_name"),
+        F.col("CountryRegionCode").cast("string").alias("country_region_code"),
+        F.col("Group").cast("string").alias("territory_group"),
+        F.col("SalesYTD").cast("decimal(18,4)").alias("sales_ytd"),
+        F.col("SalesLastYear").cast("decimal(18,4)").alias("sales_last_year"),
+        F.col("CostYTD").cast("decimal(18,4)").alias("cost_ytd"),
+        F.col("CostLastYear").cast("decimal(18,4)").alias("cost_last_year"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -608,37 +461,21 @@ def silver_sales_territory():
     }
 )
 def silver_sales_special_offer():
-    return (
-        spark.readStream.table("bronze_sales_specialoffer")
-        .select(
-            F.col("SpecialOfferID").cast("long").alias("special_offer_id"),
-            F.col("Description").cast("string").alias("description"),
-            F.col("DiscountPct").cast("decimal(10,4)").alias("discount_pct"),
-            F.col("Type").cast("string").alias("promotion_type"),
-            F.col("Category").cast("string").alias("promotion_category"),
-            F.to_timestamp("StartDate").alias("start_date"),
-            F.to_timestamp("EndDate").alias("end_date"),
-            F.col("MinQty").cast("int").alias("min_qty"),
-            F.col("MaxQty").cast("int").alias("max_qty"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "description",
-                "discount_pct",
-                "promotion_type",
-                "promotion_category",
-                "start_date",
-                "end_date",
-                "min_qty",
-                "max_qty",
-            ),
-        )
+    return spark.readStream.table("bronze_sales_specialoffer").select(
+        F.col("SpecialOfferID").cast("long").alias("special_offer_id"),
+        F.col("Description").cast("string").alias("description"),
+        F.col("DiscountPct").cast("decimal(10,4)").alias("discount_pct"),
+        F.col("Type").cast("string").alias("promotion_type"),
+        F.col("Category").cast("string").alias("promotion_category"),
+        F.to_timestamp("StartDate").alias("start_date"),
+        F.to_timestamp("EndDate").alias("end_date"),
+        F.col("MinQty").cast("int").alias("min_qty"),
+        F.col("MaxQty").cast("int").alias("max_qty"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -657,18 +494,14 @@ def silver_sales_special_offer():
     }
 )
 def silver_sales_special_offer_product():
-    return (
-        spark.readStream.table("bronze_sales_specialofferproduct")
-        .select(
-            F.col("SpecialOfferID").cast("long").alias("special_offer_id"),
-            F.col("ProductID").cast("long").alias("product_id"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("rowguid").cast("string").alias("row_guid"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn("record_hash", record_hash("special_offer_id", "product_id"))
+    return spark.readStream.table("bronze_sales_specialofferproduct").select(
+        F.col("SpecialOfferID").cast("long").alias("special_offer_id"),
+        F.col("ProductID").cast("long").alias("product_id"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("rowguid").cast("string").alias("row_guid"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
 
 
@@ -690,24 +523,15 @@ def silver_sales_special_offer_product():
     }
 )
 def silver_sales_currency_rate():
-    return (
-        spark.readStream.table("bronze_sales_currencyrate")
-        .select(
-            F.col("CurrencyRateID").cast("long").alias("currency_rate_id"),
-            F.to_timestamp("CurrencyRateDate").alias("currency_rate_date"),
-            F.col("FromCurrencyCode").cast("string").alias("from_currency_code"),
-            F.col("ToCurrencyCode").cast("string").alias("to_currency_code"),
-            F.col("AverageRate").cast("decimal(18,6)").alias("average_rate"),
-            F.col("EndOfDayRate").cast("decimal(18,6)").alias("end_of_day_rate"),
-            F.to_timestamp("ModifiedDate").alias("modified_at"),
-            F.col("__source_file_name"),
-            F.col("__ingestion_time"),
-            F.current_timestamp().alias("__processing_time"),
-        )
-        .withColumn(
-            "record_hash",
-            record_hash(
-                "currency_rate_date", "from_currency_code", "to_currency_code", "average_rate", "end_of_day_rate"
-            ),
-        )
+    return spark.readStream.table("bronze_sales_currencyrate").select(
+        F.col("CurrencyRateID").cast("long").alias("currency_rate_id"),
+        F.to_timestamp("CurrencyRateDate").alias("currency_rate_date"),
+        F.col("FromCurrencyCode").cast("string").alias("from_currency_code"),
+        F.col("ToCurrencyCode").cast("string").alias("to_currency_code"),
+        F.col("AverageRate").cast("decimal(18,6)").alias("average_rate"),
+        F.col("EndOfDayRate").cast("decimal(18,6)").alias("end_of_day_rate"),
+        F.to_timestamp("ModifiedDate").alias("modified_at"),
+        F.col("__source_file_name"),
+        F.col("__ingestion_time"),
+        F.current_timestamp().alias("__processing_time"),
     )
