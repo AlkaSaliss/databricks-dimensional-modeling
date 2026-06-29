@@ -6,3 +6,8 @@ subdirectory.
 
 ## Git Management
 - Don't commit your changes unless explicitly told to
+- when you push your changes, make sure to check the CI runs successfully before giving task completion confirmation to user
+
+
+## Databricks interactions
+- Use databricks profile named "personal" to access databricks resources related to this project

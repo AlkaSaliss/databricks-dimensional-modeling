@@ -9,6 +9,16 @@ def record_hash(*cols):
     return F.sha2(F.concat_ws("|", *[F.coalesce(F.col(c).cast("string"), F.lit("")) for c in cols]), 256)
 
 
+def individual_survey_field(xml_col, field_name):
+    value = F.trim(
+        F.xpath_string(
+            xml_col,
+            F.lit(f"/*[local-name()='IndividualSurvey']/*[local-name()='{field_name}']/text()"),
+        )
+    )
+    return F.when(F.length(value) > 0, value)
+
+
 spatial_schema = StructType(
     [
         StructField("latitude", DoubleType(), True),

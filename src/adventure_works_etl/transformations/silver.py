@@ -1,7 +1,7 @@
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
-from transformations.helpers import parse_spatial_location, record_hash
+from transformations.helpers import individual_survey_field, parse_spatial_location, record_hash
 
 
 @dp.table(
@@ -15,6 +15,21 @@ from transformations.helpers import parse_spatial_location, record_hash
     {"valid_business_entity_id": "business_entity_id IS NOT NULL", "valid_modified_at": "modified_at IS NOT NULL"}
 )
 def silver_person():
+    demographics = F.col("Demographics").cast("string")
+    total_purchase_ytd = individual_survey_field(demographics, "TotalPurchaseYTD")
+    date_first_purchase = individual_survey_field(demographics, "DateFirstPurchase")
+    birth_date = individual_survey_field(demographics, "BirthDate")
+    marital_status = individual_survey_field(demographics, "MaritalStatus")
+    yearly_income = individual_survey_field(demographics, "YearlyIncome")
+    gender = individual_survey_field(demographics, "Gender")
+    total_children = individual_survey_field(demographics, "TotalChildren")
+    number_children_at_home = individual_survey_field(demographics, "NumberChildrenAtHome")
+    education = individual_survey_field(demographics, "Education")
+    occupation = individual_survey_field(demographics, "Occupation")
+    home_owner_flag = individual_survey_field(demographics, "HomeOwnerFlag")
+    number_cars_owned = individual_survey_field(demographics, "NumberCarsOwned")
+    commute_distance = individual_survey_field(demographics, "CommuteDistance")
+
     return (
         spark.readStream.table("bronze_person_person")
         .select(
@@ -27,6 +42,20 @@ def silver_person():
             F.col("LastName").cast("string").alias("last_name"),
             F.col("Suffix").cast("string").alias("suffix"),
             F.col("EmailPromotion").cast("int").alias("email_promotion"),
+            demographics.alias("demographics_raw"),
+            total_purchase_ytd.cast("decimal(18,4)").alias("total_purchase_ytd"),
+            F.to_date(date_first_purchase, "yyyy-MM-dd'Z'").alias("date_first_purchase"),
+            F.to_date(birth_date, "yyyy-MM-dd'Z'").alias("birth_date"),
+            marital_status.alias("marital_status"),
+            yearly_income.alias("yearly_income"),
+            gender.alias("gender"),
+            total_children.cast("int").alias("total_children"),
+            number_children_at_home.cast("int").alias("number_children_at_home"),
+            education.alias("education"),
+            occupation.alias("occupation"),
+            (home_owner_flag == F.lit("1")).alias("home_owner_flag"),
+            number_cars_owned.cast("int").alias("number_cars_owned"),
+            commute_distance.alias("commute_distance"),
             F.to_timestamp("ModifiedDate").alias("modified_at"),
             F.col("rowguid").cast("string").alias("row_guid"),
             F.col("__source_file_name"),
@@ -44,6 +73,7 @@ def silver_person():
                 "last_name",
                 "suffix",
                 "email_promotion",
+                "demographics_raw",
             ),
         )
     )
