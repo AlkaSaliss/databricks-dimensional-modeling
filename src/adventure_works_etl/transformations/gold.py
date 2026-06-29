@@ -18,6 +18,18 @@ from transformations.helpers import record_hash
 def stg_dim_customer():
     customer = spark.read.table("silver_sales_customer").alias("customer")
     person = spark.read.table("silver_person").alias("person")
+    order_address = (
+        spark.read.table("silver_sales_order_header")
+        .groupBy("customer_id")
+        .agg(
+            F.max_by("ship_to_address_id", "sales_order_id").alias("address_id"),
+            F.max("modified_at").alias("order_modified_at"),
+        )
+        .alias("order_address")
+    )
+    address = spark.read.table("silver_person_address").alias("address")
+    state = spark.read.table("silver_person_state_province").alias("state")
+    country = spark.read.table("silver_person_country_region").alias("country")
     email = (
         spark.read.table("silver_person_email_address")
         .groupBy("business_entity_id")
@@ -31,8 +43,25 @@ def stg_dim_customer():
     return (
         customer.join(person, F.col("customer.person_id") == F.col("person.business_entity_id"), "left")
         .join(email, F.col("customer.person_id") == F.col("email.business_entity_id"), "left")
+        .join(order_address, F.col("customer.customer_id") == F.col("order_address.customer_id"), "left")
+        .join(address, F.col("order_address.address_id") == F.col("address.address_id"), "left")
+        .join(state, F.col("address.state_province_id") == F.col("state.state_province_id"), "left")
+        .join(country, F.col("state.country_region_code") == F.col("country.country_region_code"), "left")
         .select(
             F.col("customer.customer_id"),
+            record_hash(
+                F.col("customer.customer_id"),
+                F.greatest(
+                    F.col("customer.modified_at"),
+                    F.col("person.modified_at"),
+                    F.col("email.email_modified_at"),
+                    F.col("order_address.order_modified_at"),
+                    F.col("address.modified_at"),
+                    F.col("state.modified_at"),
+                    F.col("country.modified_at"),
+                ),
+                namespace="dim_customer",
+            ).alias("customer_key"),
             F.col("customer.person_id"),
             F.col("customer.store_id"),
             F.col("customer.territory_id"),
@@ -56,10 +85,25 @@ def stg_dim_customer():
             F.col("person.home_owner_flag"),
             F.col("person.number_cars_owned"),
             F.col("person.commute_distance"),
+            F.col("order_address.address_id"),
+            F.col("address.address_line_1"),
+            F.col("address.address_line_2"),
+            F.col("address.city"),
+            F.col("address.postal_code"),
+            F.col("state.state_province_id"),
+            F.col("state.state_province_code"),
+            F.col("state.state_province_name"),
+            F.col("country.country_region_code"),
+            F.col("country.country_region_name"),
+            F.lit(False).alias("is_late_arriving"),
             F.greatest(
                 F.col("customer.modified_at"),
                 F.col("person.modified_at"),
                 F.col("email.email_modified_at"),
+                F.col("order_address.order_modified_at"),
+                F.col("address.modified_at"),
+                F.col("state.modified_at"),
+                F.col("country.modified_at"),
             ).alias("modified_at"),
             F.col("customer.__source_file_name"),
             F.col("customer.__ingestion_time"),
@@ -322,6 +366,28 @@ dp.create_auto_cdc_from_snapshot_flow(
     stored_as_scd_type=2,
     track_history_except_column_list=[
         "sales_territory_key",
+        "__source_file_name",
+        "__ingestion_time",
+        "__processing_time",
+    ],
+)
+
+dp.create_streaming_table(
+    name="dim_customer",
+    comment="Type 2 customer dimension maintained from customer snapshots.",
+    table_properties={
+        "clusterBy": "auto",
+    },
+)
+
+dp.create_auto_cdc_from_snapshot_flow(
+    target="dim_customer",
+    source="stg_dim_customer",
+    keys=["customer_id"],
+    stored_as_scd_type=2,
+    track_history_except_column_list=[
+        "customer_key",
+        "is_late_arriving",
         "__source_file_name",
         "__ingestion_time",
         "__processing_time",
