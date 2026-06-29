@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := help
+DBX_PROFILE := personal
 TARGET := dev
+BUNDLE_RESOURCE := adventure_works_etl
 
 ##@ General
 
@@ -14,18 +16,27 @@ help: ## Display this help message
 ## Validate bundle target
 validate-bundle:
 	@echo "Validating bundle $(TARGET) target..."
-	@databricks bundle validate --target $(TARGET)
+	@databricks bundle validate --target $(TARGET) --profile $(DBX_PROFILE)
 
 ## Show planned resources
 plan-bundle:
 	@echo "Showing planned resources..."
-	@databricks bundle plan --target $(TARGET)
+	@databricks bundle plan --target $(TARGET) --profile $(DBX_PROFILE)
 
 ## Deploy Bundle
 deploy-bundle:
 	@echo "Deploying bundle $(TARGET) target..."
-	@databricks bundle deploy --target $(TARGET)
+	@databricks bundle deploy --target $(TARGET) --profile $(DBX_PROFILE)
 
+## Run bundle with refresh all:
+run-bundle:
+	@echo "Running bundle $(TARGET) target..."
+	@databricks bundle run $(BUNDLE_RESOURCE) -t $(TARGET) --profile $(DBX_PROFILE)
+
+## Run bundle with FULL refresh all:
+run-bundle-full:
+	@echo "Running bundle $(TARGET) target..."
+	@databricks bundle run $(BUNDLE_RESOURCE) -t $(TARGET) --full-refresh-all --profile $(DBX_PROFILE)
 
 ## Run pre-commit hooks
 pre-commit:

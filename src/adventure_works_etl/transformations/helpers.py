@@ -6,7 +6,7 @@ from pyspark.sql.types import DoubleType, StructField, StructType
 
 
 def record_hash(*cols, namespace=None):
-    hash_cols = [F.coalesce(F.col(c).cast("string"), F.lit("")) for c in cols]
+    hash_cols = [F.coalesce((F.col(c) if isinstance(c, str) else c).cast("string"), F.lit("")) for c in cols]
     if namespace is not None:
         hash_cols = [F.lit(namespace), *hash_cols]
 
