@@ -18,6 +18,7 @@ from transformations.helpers import record_hash
 def stg_dim_customer():
     customer = spark.read.table("silver_sales_customer").alias("customer")
     person = spark.read.table("silver_person").alias("person")
+    inferred_modified_at = F.to_timestamp(F.lit("1900-01-01 00:00:00"))
     order_address = (
         spark.read.table("silver_sales_order_header")
         .groupBy("customer_id")
@@ -39,8 +40,7 @@ def stg_dim_customer():
         )
         .alias("email")
     )
-
-    return (
+    actual = (
         customer.join(person, F.col("customer.person_id") == F.col("person.business_entity_id"), "left")
         .join(email, F.col("customer.person_id") == F.col("email.business_entity_id"), "left")
         .join(order_address, F.col("customer.customer_id") == F.col("order_address.customer_id"), "left")
@@ -110,6 +110,57 @@ def stg_dim_customer():
             F.current_timestamp().alias("__processing_time"),
         )
     )
+    inferred = (
+        spark.read.table("silver_sales_order_header")
+        .select("customer_id")
+        .where(F.col("customer_id").isNotNull())
+        .distinct()
+        .join(actual.select("customer_id"), "customer_id", "left_anti")
+        .select(
+            F.col("customer_id"),
+            record_hash(F.col("customer_id"), F.lit("inferred"), namespace="dim_customer").alias("customer_key"),
+            F.lit(None).cast("long").alias("person_id"),
+            F.lit(None).cast("long").alias("store_id"),
+            F.lit(None).cast("long").alias("territory_id"),
+            F.lit(None).cast("string").alias("account_number"),
+            F.lit(None).cast("string").alias("person_type"),
+            F.lit(None).cast("string").alias("title"),
+            F.lit(None).cast("string").alias("first_name"),
+            F.lit(None).cast("string").alias("middle_name"),
+            F.lit(None).cast("string").alias("last_name"),
+            F.lit(None).cast("string").alias("suffix"),
+            F.lit(None).cast("int").alias("email_promotion"),
+            F.lit(None).cast("string").alias("email_address"),
+            F.lit(None).cast("date").alias("birth_date"),
+            F.lit(None).cast("string").alias("marital_status"),
+            F.lit(None).cast("string").alias("yearly_income"),
+            F.lit(None).cast("string").alias("gender"),
+            F.lit(None).cast("int").alias("total_children"),
+            F.lit(None).cast("int").alias("number_children_at_home"),
+            F.lit(None).cast("string").alias("education"),
+            F.lit(None).cast("string").alias("occupation"),
+            F.lit(None).cast("boolean").alias("home_owner_flag"),
+            F.lit(None).cast("int").alias("number_cars_owned"),
+            F.lit(None).cast("string").alias("commute_distance"),
+            F.lit(None).cast("long").alias("address_id"),
+            F.lit(None).cast("string").alias("address_line_1"),
+            F.lit(None).cast("string").alias("address_line_2"),
+            F.lit(None).cast("string").alias("city"),
+            F.lit(None).cast("string").alias("postal_code"),
+            F.lit(None).cast("long").alias("state_province_id"),
+            F.lit(None).cast("string").alias("state_province_code"),
+            F.lit(None).cast("string").alias("state_province_name"),
+            F.lit(None).cast("string").alias("country_region_code"),
+            F.lit(None).cast("string").alias("country_region_name"),
+            F.lit(True).alias("is_late_arriving"),
+            inferred_modified_at.alias("modified_at"),
+            F.lit(None).cast("string").alias("__source_file_name"),
+            F.lit(None).cast("timestamp").alias("__ingestion_time"),
+            F.current_timestamp().alias("__processing_time"),
+        )
+    )
+
+    return actual.unionByName(inferred)
 
 
 @dp.view(
@@ -120,13 +171,14 @@ def stg_dim_product():
     product = spark.read.table("silver_product").alias("product")
     subcategory = spark.read.table("silver_product_subcategory").alias("subcategory")
     category = spark.read.table("silver_product_category").alias("category")
+    inferred_modified_at = F.to_timestamp(F.lit("1900-01-01 00:00:00"))
     modified_at = F.greatest(
         F.col("product.modified_at"),
         F.col("subcategory.modified_at"),
         F.col("category.modified_at"),
     )
 
-    return (
+    actual = (
         product.join(
             subcategory,
             F.col("product.product_subcategory_id") == F.col("subcategory.product_subcategory_id"),
@@ -164,12 +216,55 @@ def stg_dim_product():
             F.col("product.product_model_id"),
             F.col("product.sell_start_date"),
             F.col("product.sell_end_date"),
+            F.lit(False).alias("is_late_arriving"),
             modified_at.alias("modified_at"),
             F.col("product.__source_file_name"),
             F.col("product.__ingestion_time"),
             F.current_timestamp().alias("__processing_time"),
         )
     )
+    inferred = (
+        spark.read.table("silver_sales_order_detail")
+        .select("product_id")
+        .where(F.col("product_id").isNotNull())
+        .distinct()
+        .join(actual.select("product_id"), "product_id", "left_anti")
+        .select(
+            F.col("product_id"),
+            record_hash(F.col("product_id"), F.lit("inferred"), namespace="dim_product").alias("product_key"),
+            F.lit(None).cast("string").alias("product_number"),
+            F.lit(None).cast("string").alias("product_name"),
+            F.lit(None).cast("boolean").alias("make_flag"),
+            F.lit(None).cast("boolean").alias("finished_goods_flag"),
+            F.lit(None).cast("string").alias("color"),
+            F.lit(None).cast("int").alias("safety_stock_level"),
+            F.lit(None).cast("int").alias("reorder_point"),
+            F.lit(None).cast("decimal(18,4)").alias("standard_cost"),
+            F.lit(None).cast("decimal(18,4)").alias("list_price"),
+            F.lit(None).cast("string").alias("size"),
+            F.lit(None).cast("string").alias("size_unit_measure_code"),
+            F.lit(None).cast("string").alias("weight_unit_measure_code"),
+            F.lit(None).cast("decimal(18,4)").alias("weight"),
+            F.lit(None).cast("int").alias("days_to_manufacture"),
+            F.lit(None).cast("string").alias("product_line"),
+            F.lit(None).cast("string").alias("class"),
+            F.lit(None).cast("string").alias("style"),
+            F.lit(None).cast("long").alias("product_subcategory_id"),
+            F.lit(None).cast("string").alias("product_subcategory_name"),
+            F.lit(None).cast("long").alias("product_category_id"),
+            F.lit(None).cast("string").alias("product_category_name"),
+            F.lit(None).cast("long").alias("product_model_id"),
+            F.lit(None).cast("timestamp").alias("sell_start_date"),
+            F.lit(None).cast("timestamp").alias("sell_end_date"),
+            F.lit(True).alias("is_late_arriving"),
+            inferred_modified_at.alias("modified_at"),
+            F.lit(None).cast("string").alias("__source_file_name"),
+            F.lit(None).cast("timestamp").alias("__ingestion_time"),
+            F.current_timestamp().alias("__processing_time"),
+        )
+    )
+
+    return actual.unionByName(inferred)
 
 
 @dp.view(
@@ -200,7 +295,8 @@ def stg_dim_promotion():
     comment="Currency dimension staging view from currency rate silver records.",
 )
 def stg_dim_currency():
-    return spark.read.table("silver_sales_currency_rate").select(
+    inferred_modified_at = F.to_timestamp(F.lit("1900-01-01 00:00:00"))
+    actual = spark.read.table("silver_sales_currency_rate").select(
         F.col("currency_rate_id"),
         record_hash(F.col("currency_rate_id"), F.col("modified_at"), namespace="dim_currency").alias("currency_key"),
         F.col("currency_rate_date"),
@@ -208,11 +304,35 @@ def stg_dim_currency():
         F.col("to_currency_code"),
         F.col("average_rate"),
         F.col("end_of_day_rate"),
+        F.lit(False).alias("is_late_arriving"),
         F.col("modified_at"),
         F.col("__source_file_name"),
         F.col("__ingestion_time"),
         F.current_timestamp().alias("__processing_time"),
     )
+    inferred = (
+        spark.read.table("silver_sales_order_header")
+        .select("currency_rate_id")
+        .where(F.col("currency_rate_id").isNotNull())
+        .distinct()
+        .join(actual.select("currency_rate_id"), "currency_rate_id", "left_anti")
+        .select(
+            F.col("currency_rate_id"),
+            record_hash(F.col("currency_rate_id"), F.lit("inferred"), namespace="dim_currency").alias("currency_key"),
+            F.lit(None).cast("timestamp").alias("currency_rate_date"),
+            F.lit(None).cast("string").alias("from_currency_code"),
+            F.lit(None).cast("string").alias("to_currency_code"),
+            F.lit(None).cast("decimal(18,6)").alias("average_rate"),
+            F.lit(None).cast("decimal(18,6)").alias("end_of_day_rate"),
+            F.lit(True).alias("is_late_arriving"),
+            inferred_modified_at.alias("modified_at"),
+            F.lit(None).cast("string").alias("__source_file_name"),
+            F.lit(None).cast("timestamp").alias("__ingestion_time"),
+            F.current_timestamp().alias("__processing_time"),
+        )
+    )
+
+    return actual.unionByName(inferred)
 
 
 @dp.view(
@@ -220,7 +340,8 @@ def stg_dim_currency():
     comment="Sales territory dimension staging view from sales territory silver records.",
 )
 def stg_dim_sales_territory():
-    return spark.read.table("silver_sales_territory").select(
+    inferred_modified_at = F.to_timestamp(F.lit("1900-01-01 00:00:00"))
+    actual = spark.read.table("silver_sales_territory").select(
         F.col("territory_id"),
         record_hash(F.col("territory_id"), F.col("modified_at"), namespace="dim_sales_territory").alias(
             "sales_territory_key"
@@ -232,11 +353,39 @@ def stg_dim_sales_territory():
         F.col("sales_last_year"),
         F.col("cost_ytd"),
         F.col("cost_last_year"),
+        F.lit(False).alias("is_late_arriving"),
         F.col("modified_at"),
         F.col("__source_file_name"),
         F.col("__ingestion_time"),
         F.current_timestamp().alias("__processing_time"),
     )
+    inferred = (
+        spark.read.table("silver_sales_order_header")
+        .select("territory_id")
+        .where(F.col("territory_id").isNotNull())
+        .distinct()
+        .join(actual.select("territory_id"), "territory_id", "left_anti")
+        .select(
+            F.col("territory_id"),
+            record_hash(F.col("territory_id"), F.lit("inferred"), namespace="dim_sales_territory").alias(
+                "sales_territory_key"
+            ),
+            F.lit(None).cast("string").alias("territory_name"),
+            F.lit(None).cast("string").alias("country_region_code"),
+            F.lit(None).cast("string").alias("territory_group"),
+            F.lit(None).cast("decimal(18,4)").alias("sales_ytd"),
+            F.lit(None).cast("decimal(18,4)").alias("sales_last_year"),
+            F.lit(None).cast("decimal(18,4)").alias("cost_ytd"),
+            F.lit(None).cast("decimal(18,4)").alias("cost_last_year"),
+            F.lit(True).alias("is_late_arriving"),
+            inferred_modified_at.alias("modified_at"),
+            F.lit(None).cast("string").alias("__source_file_name"),
+            F.lit(None).cast("timestamp").alias("__ingestion_time"),
+            F.current_timestamp().alias("__processing_time"),
+        )
+    )
+
+    return actual.unionByName(inferred)
 
 
 # ---------------------------------------------------------------------
@@ -324,6 +473,7 @@ dp.create_auto_cdc_from_snapshot_flow(
     stored_as_scd_type=2,
     track_history_except_column_list=[
         "product_key",
+        "is_late_arriving",
         "__source_file_name",
         "__ingestion_time",
         "__processing_time",
@@ -345,6 +495,7 @@ dp.create_auto_cdc_from_snapshot_flow(
     stored_as_scd_type=2,
     track_history_except_column_list=[
         "currency_key",
+        "is_late_arriving",
         "__source_file_name",
         "__ingestion_time",
         "__processing_time",
@@ -366,6 +517,7 @@ dp.create_auto_cdc_from_snapshot_flow(
     stored_as_scd_type=2,
     track_history_except_column_list=[
         "sales_territory_key",
+        "is_late_arriving",
         "__source_file_name",
         "__ingestion_time",
         "__processing_time",
