@@ -1,0 +1,1583 @@
+{
+  "datasets": [
+    {
+      "name": "monthly_sales_trend",
+      "displayName": "Monthly Sales Trend",
+      "queryLines": [
+        "SELECT\n",
+        "  order_year,\n",
+        "  order_month,\n",
+        "  order_month_name,\n",
+        "  make_date(order_year, order_month, 1) AS order_month_start_date,\n",
+        "  net_sales_amount,\n",
+        "  gross_sales_amount,\n",
+        "  discount_amount,\n",
+        "  order_quantity,\n",
+        "  order_count,\n",
+        "  customer_count,\n",
+        "  average_order_value,\n",
+        "  discount_rate\n",
+        "FROM\n",
+        "  bi_sales_monthly\n",
+        "ORDER BY\n",
+        "  order_year,\n",
+        "  order_month"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "territory_discount_comparison",
+      "displayName": "Territory Discount Comparison",
+      "queryLines": [
+        "SELECT\n",
+        "  territory_country_region_code,\n",
+        "  territory_group,\n",
+        "  territory_name,\n",
+        "  gross_sales_amount,\n",
+        "  discount_amount,\n",
+        "  net_sales_amount,\n",
+        "  discount_rate\n",
+        "FROM\n",
+        "  bi_territory_performance\n",
+        "ORDER BY\n",
+        "  discount_rate DESC,\n",
+        "  net_sales_amount DESC"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "territory_performance",
+      "displayName": "Territory Performance",
+      "queryLines": [
+        "SELECT\n",
+        "  territory_country_region_code,\n",
+        "  territory_group,\n",
+        "  territory_id,\n",
+        "  territory_name,\n",
+        "  net_sales_amount,\n",
+        "  gross_sales_amount,\n",
+        "  discount_amount,\n",
+        "  order_quantity,\n",
+        "  order_count,\n",
+        "  customer_count,\n",
+        "  average_order_value,\n",
+        "  discount_rate\n",
+        "FROM\n",
+        "  bi_territory_performance\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "kpi_summary",
+      "displayName": "KPI Summary",
+      "queryLines": [
+        "WITH sales_totals AS (\n",
+        "  SELECT\n",
+        "    sum(net_sales_amount) AS net_sales_amount,\n",
+        "    sum(gross_sales_amount) AS gross_sales_amount,\n",
+        "    sum(discount_amount) AS discount_amount,\n",
+        "    sum(order_quantity) AS order_quantity,\n",
+        "    sum(order_count) AS order_count\n",
+        "  FROM\n",
+        "    bi_sales_monthly\n",
+        "),\n",
+        "customer_totals AS (\n",
+        "  SELECT\n",
+        "    count(DISTINCT customer_id) AS customer_count\n",
+        "  FROM\n",
+        "    bi_sales_order_line\n",
+        ")\n",
+        "SELECT\n",
+        "  sales.net_sales_amount,\n",
+        "  sales.gross_sales_amount,\n",
+        "  sales.discount_amount,\n",
+        "  sales.order_quantity,\n",
+        "  sales.order_count,\n",
+        "  customers.customer_count,\n",
+        "  CASE\n",
+        "    WHEN sales.order_count = 0 THEN NULL\n",
+        "    ELSE sales.net_sales_amount / sales.order_count\n",
+        "  END AS average_order_value,\n",
+        "  CASE\n",
+        "    WHEN sales.gross_sales_amount = 0 THEN NULL\n",
+        "    ELSE sales.discount_amount / sales.gross_sales_amount\n",
+        "  END AS discount_rate\n",
+        "FROM\n",
+        "  sales_totals AS sales CROSS JOIN customer_totals AS customers"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "yearly_sales_summary",
+      "displayName": "Yearly Sales Summary",
+      "queryLines": [
+        "SELECT\n",
+        "  order_year,\n",
+        "  sum(net_sales_amount) AS net_sales_amount,\n",
+        "  sum(gross_sales_amount) AS gross_sales_amount,\n",
+        "  sum(discount_amount) AS discount_amount,\n",
+        "  sum(order_quantity) AS order_quantity,\n",
+        "  sum(order_count) AS order_count,\n",
+        "  CASE\n",
+        "    WHEN sum(order_count) = 0 THEN NULL\n",
+        "    ELSE sum(net_sales_amount) / sum(order_count)\n",
+        "  END AS average_order_value,\n",
+        "  CASE\n",
+        "    WHEN sum(gross_sales_amount) = 0 THEN NULL\n",
+        "    ELSE sum(discount_amount) / sum(gross_sales_amount)\n",
+        "  END AS discount_rate\n",
+        "FROM\n",
+        "  bi_sales_monthly\n",
+        "GROUP BY\n",
+        "  order_year\n",
+        "ORDER BY\n",
+        "  order_year"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "territory_group_performance",
+      "displayName": "Territory Group Performance",
+      "queryLines": [
+        "SELECT\n",
+        "  territory_group,\n",
+        "  sum(net_sales_amount) AS net_sales_amount,\n",
+        "  sum(gross_sales_amount) AS gross_sales_amount,\n",
+        "  sum(discount_amount) AS discount_amount,\n",
+        "  sum(order_quantity) AS order_quantity,\n",
+        "  sum(order_count) AS order_count,\n",
+        "  sum(customer_count) AS territory_customer_count_sum,\n",
+        "  CASE\n",
+        "    WHEN sum(order_count) = 0 THEN NULL\n",
+        "    ELSE sum(net_sales_amount) / sum(order_count)\n",
+        "  END AS average_order_value,\n",
+        "  CASE\n",
+        "    WHEN sum(gross_sales_amount) = 0 THEN NULL\n",
+        "    ELSE sum(discount_amount) / sum(gross_sales_amount)\n",
+        "  END AS discount_rate\n",
+        "FROM\n",
+        "  bi_territory_performance\n",
+        "GROUP BY\n",
+        "  territory_group\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "top_products",
+      "displayName": "Top Products",
+      "queryLines": [
+        "SELECT\n",
+        "  product_category_name,\n",
+        "  product_subcategory_name,\n",
+        "  product_id,\n",
+        "  product_name,\n",
+        "  product_line,\n",
+        "  product_class,\n",
+        "  product_style,\n",
+        "  product_color,\n",
+        "  net_sales_amount,\n",
+        "  gross_sales_amount,\n",
+        "  discount_amount,\n",
+        "  order_quantity,\n",
+        "  order_count,\n",
+        "  customer_count,\n",
+        "  average_order_value,\n",
+        "  discount_rate\n",
+        "FROM\n",
+        "  bi_product_performance\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC\n",
+        "LIMIT 25"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "product_category_performance",
+      "displayName": "Product Category Performance",
+      "queryLines": [
+        "SELECT\n",
+        "  product_category_name,\n",
+        "  sum(net_sales_amount) AS net_sales_amount,\n",
+        "  sum(gross_sales_amount) AS gross_sales_amount,\n",
+        "  sum(discount_amount) AS discount_amount,\n",
+        "  sum(order_quantity) AS order_quantity,\n",
+        "  sum(order_count) AS order_count,\n",
+        "  count(DISTINCT product_id) AS product_count,\n",
+        "  CASE\n",
+        "    WHEN sum(order_count) = 0 THEN NULL\n",
+        "    ELSE sum(net_sales_amount) / sum(order_count)\n",
+        "  END AS average_order_value,\n",
+        "  CASE\n",
+        "    WHEN sum(gross_sales_amount) = 0 THEN NULL\n",
+        "    ELSE sum(discount_amount) / sum(gross_sales_amount)\n",
+        "  END AS discount_rate\n",
+        "FROM\n",
+        "  bi_product_performance\n",
+        "GROUP BY\n",
+        "  product_category_name\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "high_discount_products",
+      "displayName": "High Discount Products",
+      "queryLines": [
+        "SELECT\n",
+        "  product_category_name,\n",
+        "  product_subcategory_name,\n",
+        "  product_id,\n",
+        "  product_name,\n",
+        "  net_sales_amount,\n",
+        "  gross_sales_amount,\n",
+        "  discount_amount,\n",
+        "  order_count,\n",
+        "  discount_rate\n",
+        "FROM\n",
+        "  bi_product_performance\n",
+        "WHERE\n",
+        "  order_count >= 10\n",
+        "ORDER BY\n",
+        "  discount_rate DESC,\n",
+        "  net_sales_amount DESC\n",
+        "LIMIT 25"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "product_subcategory_performance",
+      "displayName": "Product Subcategory Performance",
+      "queryLines": [
+        "SELECT\n",
+        "  product_category_name,\n",
+        "  product_subcategory_name,\n",
+        "  sum(net_sales_amount) AS net_sales_amount,\n",
+        "  sum(gross_sales_amount) AS gross_sales_amount,\n",
+        "  sum(discount_amount) AS discount_amount,\n",
+        "  sum(order_quantity) AS order_quantity,\n",
+        "  sum(order_count) AS order_count,\n",
+        "  count(DISTINCT product_id) AS product_count,\n",
+        "  CASE\n",
+        "    WHEN sum(order_count) = 0 THEN NULL\n",
+        "    ELSE sum(net_sales_amount) / sum(order_count)\n",
+        "  END AS average_order_value,\n",
+        "  CASE\n",
+        "    WHEN sum(gross_sales_amount) = 0 THEN NULL\n",
+        "    ELSE sum(discount_amount) / sum(gross_sales_amount)\n",
+        "  END AS discount_rate\n",
+        "FROM\n",
+        "  bi_product_performance\n",
+        "GROUP BY\n",
+        "  product_category_name,\n",
+        "  product_subcategory_name\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "income_segment_performance",
+      "displayName": "Income Segment Performance",
+      "queryLines": [
+        "SELECT\n",
+        "  yearly_income,\n",
+        "  sum(net_sales_amount) AS net_sales_amount,\n",
+        "  sum(gross_sales_amount) AS gross_sales_amount,\n",
+        "  sum(discount_amount) AS discount_amount,\n",
+        "  sum(order_quantity) AS order_quantity,\n",
+        "  sum(order_count) AS order_count,\n",
+        "  sum(customer_count) AS segment_customer_count_sum,\n",
+        "  CASE\n",
+        "    WHEN sum(order_count) = 0 THEN NULL\n",
+        "    ELSE sum(net_sales_amount) / sum(order_count)\n",
+        "  END AS average_order_value,\n",
+        "  CASE\n",
+        "    WHEN sum(gross_sales_amount) = 0 THEN NULL\n",
+        "    ELSE sum(discount_amount) / sum(gross_sales_amount)\n",
+        "  END AS discount_rate\n",
+        "FROM\n",
+        "  bi_customer_segments\n",
+        "GROUP BY\n",
+        "  yearly_income\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "education_occupation_performance",
+      "displayName": "Education And Occupation Performance",
+      "queryLines": [
+        "SELECT\n",
+        "  education,\n",
+        "  occupation,\n",
+        "  sum(net_sales_amount) AS net_sales_amount,\n",
+        "  sum(gross_sales_amount) AS gross_sales_amount,\n",
+        "  sum(discount_amount) AS discount_amount,\n",
+        "  sum(order_quantity) AS order_quantity,\n",
+        "  sum(order_count) AS order_count,\n",
+        "  sum(customer_count) AS segment_customer_count_sum,\n",
+        "  CASE\n",
+        "    WHEN sum(order_count) = 0 THEN NULL\n",
+        "    ELSE sum(net_sales_amount) / sum(order_count)\n",
+        "  END AS average_order_value,\n",
+        "  CASE\n",
+        "    WHEN sum(gross_sales_amount) = 0 THEN NULL\n",
+        "    ELSE sum(discount_amount) / sum(gross_sales_amount)\n",
+        "  END AS discount_rate\n",
+        "FROM\n",
+        "  bi_customer_segments\n",
+        "GROUP BY\n",
+        "  education,\n",
+        "  occupation\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    },
+    {
+      "name": "demographic_segment_detail",
+      "displayName": "Demographic Segment Detail",
+      "queryLines": [
+        "SELECT\n",
+        "  yearly_income,\n",
+        "  education,\n",
+        "  occupation,\n",
+        "  gender,\n",
+        "  marital_status,\n",
+        "  home_owner_flag,\n",
+        "  commute_distance,\n",
+        "  net_sales_amount,\n",
+        "  gross_sales_amount,\n",
+        "  discount_amount,\n",
+        "  order_quantity,\n",
+        "  order_count,\n",
+        "  customer_count,\n",
+        "  average_order_value,\n",
+        "  discount_rate\n",
+        "FROM\n",
+        "  bi_customer_segments\n",
+        "ORDER BY\n",
+        "  net_sales_amount DESC\n",
+        "LIMIT 50"
+      ],
+      "catalog": "adventure_works_dw",
+      "schema": "dev_alkasalissou_alkasalissou"
+    }
+  ],
+  "pages": [
+    {
+      "name": "b63521f6",
+      "displayName": "Executive Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "net_sales_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Net Sales",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "net_sales_amount"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gross_sales_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "gross_sales_amount",
+                      "expression": "`gross_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Gross Sales",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "gross_sales_amount"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "discount_amount_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "discount_amount",
+                      "expression": "`discount_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Discounts",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "discount_amount"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "discount_rate_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "discount_rate",
+                      "expression": "`discount_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Discount Rate",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "discount_rate"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "order_quantity_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "order_quantity",
+                      "expression": "`order_quantity`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Units Sold",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "order_quantity"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "order_count_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "order_count",
+                      "expression": "`order_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Orders",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "order_count"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "customer_count_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "customer_count",
+                      "expression": "`customer_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Customers",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "customer_count"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_order_value_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_summary",
+                  "fields": [
+                    {
+                      "name": "average_order_value",
+                      "expression": "`average_order_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Avg Order Value",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "average_order_value"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "monthly_sales_trend_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "monthly_sales_trend",
+                  "fields": [
+                    {
+                      "name": "order_month_start_date",
+                      "expression": "`order_month_start_date`"
+                    },
+                    {
+                      "name": "sum(net_sales_amount)",
+                      "expression": "SUM(`net_sales_amount`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Monthly Sales Trend",
+                "showTitle": true
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "order_month_start_date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(net_sales_amount)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "yearly_sales_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "yearly_sales_summary",
+                  "fields": [
+                    {
+                      "name": "order_year",
+                      "expression": "`order_year`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Yearly Sales Summary",
+                "showTitle": true
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "order_year",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "net_sales_amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "date_range_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f17493c7361ab9a4c39c4808fbb57c/datasets/01f174940f581746947b89683c56d942_order_month_start_date",
+                "query": {
+                  "datasetName": "monthly_sales_trend",
+                  "fields": [
+                    {
+                      "name": "order_month_start_date",
+                      "expression": "`order_month_start_date`"
+                    },
+                    {
+                      "name": "order_month_start_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Date Range",
+                "showTitle": true
+              },
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "order_month_start_date",
+                    "queryName": "dashboards/01f17493c7361ab9a4c39c4808fbb57c/datasets/01f174940f581746947b89683c56d942_order_month_start_date"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "territory_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f17493c7361ab9a4c39c4808fbb57c/datasets/01f1749421921d35828173bb80bae133_territory_group",
+                "query": {
+                  "datasetName": "territory_performance",
+                  "fields": [
+                    {
+                      "name": "territory_group",
+                      "expression": "`territory_group`"
+                    },
+                    {
+                      "name": "territory_group_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Territory Group",
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "territory_group",
+                    "queryName": "dashboards/01f17493c7361ab9a4c39c4808fbb57c/datasets/01f1749421921d35828173bb80bae133_territory_group"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "product_category_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f17493c7361ab9a4c39c4808fbb57c/datasets/01f174942af612f4bfc0e3dedb4e27bb_product_category_name",
+                "query": {
+                  "datasetName": "product_category_performance",
+                  "fields": [
+                    {
+                      "name": "product_category_name",
+                      "expression": "`product_category_name`"
+                    },
+                    {
+                      "name": "product_category_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Product Category",
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "product_category_name",
+                    "queryName": "dashboards/01f17493c7361ab9a4c39c4808fbb57c/datasets/01f174942af612f4bfc0e3dedb4e27bb_product_category_name"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "territory_performance",
+      "displayName": "Territory Performance",
+      "layout": [
+        {
+          "widget": {
+            "name": "territory_group_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "territory_group_performance",
+                  "fields": [
+                    {
+                      "name": "territory_group",
+                      "expression": "`territory_group`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Sales by Territory Group",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "territory_group",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "net_sales_amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "discount_comparison_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "territory_discount_comparison",
+                  "fields": [
+                    {
+                      "name": "territory_name",
+                      "expression": "`territory_name`"
+                    },
+                    {
+                      "name": "discount_rate",
+                      "expression": "`discount_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Territory Discount Rate Comparison",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "territory_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "discount_rate",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "territory_performance_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "territory_performance",
+                  "fields": [
+                    {
+                      "name": "territory_name",
+                      "expression": "`territory_name`"
+                    },
+                    {
+                      "name": "territory_group",
+                      "expression": "`territory_group`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    },
+                    {
+                      "name": "order_count",
+                      "expression": "`order_count`"
+                    },
+                    {
+                      "name": "customer_count",
+                      "expression": "`customer_count`"
+                    },
+                    {
+                      "name": "discount_rate",
+                      "expression": "`discount_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Territory Performance Detail",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "territory_name"
+                  },
+                  {
+                    "fieldName": "territory_group"
+                  },
+                  {
+                    "fieldName": "net_sales_amount"
+                  },
+                  {
+                    "fieldName": "order_count"
+                  },
+                  {
+                    "fieldName": "customer_count"
+                  },
+                  {
+                    "fieldName": "discount_rate"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "product_performance",
+      "displayName": "Product Performance",
+      "layout": [
+        {
+          "widget": {
+            "name": "product_category_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "product_category_performance",
+                  "fields": [
+                    {
+                      "name": "product_category_name",
+                      "expression": "`product_category_name`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Sales by Product Category",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "product_category_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "net_sales_amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "product_subcategory_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "product_subcategory_performance",
+                  "fields": [
+                    {
+                      "name": "product_subcategory_name",
+                      "expression": "`product_subcategory_name`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Sales by Product Subcategory",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "product_subcategory_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "net_sales_amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "customer_insights",
+      "displayName": "Customer Insights",
+      "layout": [
+        {
+          "widget": {
+            "name": "income_segment_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "income_segment_performance",
+                  "fields": [
+                    {
+                      "name": "yearly_income",
+                      "expression": "`yearly_income`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Sales by Income Segment",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "yearly_income",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "net_sales_amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "education_occupation_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "education_occupation_performance",
+                  "fields": [
+                    {
+                      "name": "occupation",
+                      "expression": "`occupation`"
+                    },
+                    {
+                      "name": "education",
+                      "expression": "`education`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Sales by Education & Occupation",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "education",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "net_sales_amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "occupation",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "demographic_detail_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "demographic_segment_detail",
+                  "fields": [
+                    {
+                      "name": "yearly_income",
+                      "expression": "`yearly_income`"
+                    },
+                    {
+                      "name": "education",
+                      "expression": "`education`"
+                    },
+                    {
+                      "name": "occupation",
+                      "expression": "`occupation`"
+                    },
+                    {
+                      "name": "net_sales_amount",
+                      "expression": "`net_sales_amount`"
+                    },
+                    {
+                      "name": "customer_count",
+                      "expression": "`customer_count`"
+                    },
+                    {
+                      "name": "average_order_value",
+                      "expression": "`average_order_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Demographic Segment Detail",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "yearly_income"
+                  },
+                  {
+                    "fieldName": "education"
+                  },
+                  {
+                    "fieldName": "occupation"
+                  },
+                  {
+                    "fieldName": "net_sales_amount"
+                  },
+                  {
+                    "fieldName": "customer_count"
+                  },
+                  {
+                    "fieldName": "average_order_value"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F5F7FA",
+        "dark": "#1A1D24"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#2C3038"
+      },
+      "selectionColor": {
+        "light": "#0066CC",
+        "dark": "#4DA6FF"
+      },
+      "visualizationColors": [
+        "#0066CC",
+        "#00C853",
+        "#FF6B35",
+        "#9C27B0",
+        "#FF9800",
+        "#00BCD4",
+        "#E91E63",
+        "#4CAF50",
+        "#FFC107",
+        "#673AB7"
+      ],
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED",
+      "fontFamily": "Inter",
+      "widgetPadding": 16,
+      "widgetMargin": 8,
+      "widgetCornerRadius": 8,
+      "widgetShadow": 10,
+      "fontSettings": {
+        "base": {
+          "fontFamily": "Inter",
+          "fontColor": {
+            "light": "#2C3E50",
+            "dark": "#E8EAED"
+          },
+          "fontSize": 7,
+          "fontWeight": 400
+        },
+        "widgetTitle": {
+          "fontFamily": "Inter",
+          "fontColor": {
+            "light": "#1A252F",
+            "dark": "#FFFFFF"
+          },
+          "fontSize": 12,
+          "fontWeight": 600
+        },
+        "fieldTitle": {
+          "fontFamily": "Inter",
+          "textCase": "TEXT_CASE_UPPERCASE",
+          "fontColor": {
+            "light": "#6B7280",
+            "dark": "#9CA3AF"
+          },
+          "fontSize": 7,
+          "fontWeight": 500
+        },
+        "fieldValue": {
+          "fontFamily": "Inter",
+          "fontColor": {
+            "light": "#0066CC",
+            "dark": "#4DA6FF"
+          },
+          "fontSize": 20,
+          "fontWeight": 700
+        }
+      }
+    },
+    "applyModeEnabled": false
+  }
+}
