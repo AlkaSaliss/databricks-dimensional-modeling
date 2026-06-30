@@ -5,6 +5,9 @@ AdventureWorks AI/BI dashboard in Databricks. It is written so the section
 `Paste-Ready Genie Instructions` can be copied directly into Databricks Genie or
 the Databricks coding assistant.
 
+For the companion and standalone AI/BI Genie Space implementation plan, see
+[`ai_bi_genie_space_design_plan.md`](ai_bi_genie_space_design_plan.md).
+
 ## Dashboard Summary
 
 Dashboard name:

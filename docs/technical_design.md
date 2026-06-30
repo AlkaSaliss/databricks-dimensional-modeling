@@ -68,7 +68,7 @@ flowchart LR
   stg["Gold staging views\nDimension-ready and fact-ready rows"]
   dims["Gold dimensions\nType 1/Type 2 Auto CDC"]
   fact["fact_internet_sales\nOrder-line fact"]
-  checks["Gold validation check tables\nLakeflow expectations"]
+  checks["Gold validation temp views\nLakeflow expectations"]
 
   raw --> bronze --> silver --> stg --> dims --> fact
   dims --> checks
@@ -158,7 +158,7 @@ It contains:
 - Final dimensions.
 - Inferred-member handling.
 - Fact staging and fact table.
-- Gold validation check tables.
+- Gold validation temporary views.
 
 ### Dimension Staging Views
 
@@ -322,13 +322,14 @@ Gold staging expectations validate:
 - Required fact foreign keys.
 - Positive quantities and non-negative monetary values.
 
-### Gold Uniqueness Check Tables
+### Gold Uniqueness Check Views
 
-The pipeline materializes gold uniqueness check tables. Each table groups by the
-expected unique key and emits `record_count`. A row-level expectation fails the
-pipeline if any grouped key has `record_count <> 1`.
+The pipeline defines gold uniqueness check temporary views. Each view groups by
+the expected unique key and emits `record_count`. A row-level expectation fails
+the pipeline if any grouped key has `record_count <> 1`. These views are scoped
+to the Lakeflow pipeline run and are not persisted as queryable schema objects.
 
-Current check tables:
+Current check views:
 
 - `gold_dim_date_date_key_uniqueness_check`
 - `gold_dim_promotion_special_offer_id_uniqueness_check`

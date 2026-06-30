@@ -24,6 +24,11 @@ variables:
   event_log_schema:
     description: The schema to use for event logs
     default: logs
+  dashboard_display_name:
+    description: The display name of the dashboard
+    default: AdventureWorks Executive Sales Dashboard
+  dataset_schema:
+    description: The default schema to use for dashboard datasets
 
 targets:
   dev:
@@ -40,6 +45,8 @@ targets:
       schema: ${workspace.current_user.short_name}
       event_log_schema: dev_${workspace.current_user.short_name}_logs
       deployment_user_name: ${workspace.current_user.userName}
+      dataset_schema: dev_${workspace.current_user.short_name}_${var.schema}
+      dashboard_display_name: ${workspace.current_user.short_name} Executive Sales Dashboard
     run_as:
       user_name: ${workspace.current_user.userName}
   prod:
@@ -51,6 +58,7 @@ targets:
       catalog: adventure_works_dw
       schema: prod
       pipeline_development_mode: false
+      dataset_schema: ${var.schema}
     run_as:
       service_principal_name: ${var.deployment_service_principal_name}
     permissions:

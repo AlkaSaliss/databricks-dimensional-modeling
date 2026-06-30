@@ -1,0 +1,14 @@
+resources:
+  dashboards:
+    aw_executive_sales_dashboard:
+      display_name: ${var.dashboard_display_name}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.dataset_schema}
+      embed_credentials: false
+      file_path: "../assets/AdventureWorks Executive Sales Dashboard.lvdash.json"
+      warehouse_id: "a10e62df4c510ef3"
+      permissions:
+        - user_name: ${var.deployment_user_name}
+          level: CAN_MANAGE
+        - service_principal_name: ${var.deployment_service_principal_name}
+          level: CAN_MANAGE

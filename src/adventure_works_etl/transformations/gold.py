@@ -8,12 +8,9 @@ from transformations.helpers import record_hash
 
 
 def gold_uniqueness_verification_factory(name, table_name, key_columns, where_clause=None):
-    @dp.table(
+    @dp.temporary_view(
         name=f"gold_{name}_uniqueness_check",
         comment=f"Uniqueness verification for {table_name} on {', '.join(key_columns)}.",
-        table_properties={
-            "clusterBy": "auto",
-        },
     )
     @dp.expect_or_fail(
         name=f"{name}_uniqueness_verification",

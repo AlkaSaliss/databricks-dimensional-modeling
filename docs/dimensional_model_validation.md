@@ -8,42 +8,13 @@ USE CATALOG adventure_works_dw;
 USE SCHEMA dev_alkasalissou_alkasalissou;
 ```
 
-## Gold Expectation Tables
+## Gold Pipeline Expectations
 
-The gold pipeline materializes one-row-per-key uniqueness check tables. Each row
-must have `record_count = 1`.
-
-```sql
-SELECT 'gold_dim_date_date_key_uniqueness_check' AS check_name, count(*) AS failing_rows
-FROM gold_dim_date_date_key_uniqueness_check
-WHERE record_count <> 1
-UNION ALL
-SELECT 'gold_dim_promotion_special_offer_id_uniqueness_check', count(*)
-FROM gold_dim_promotion_special_offer_id_uniqueness_check
-WHERE record_count <> 1
-UNION ALL
-SELECT 'gold_dim_product_current_product_id_uniqueness_check', count(*)
-FROM gold_dim_product_current_product_id_uniqueness_check
-WHERE record_count <> 1
-UNION ALL
-SELECT 'gold_dim_currency_current_currency_rate_id_uniqueness_check', count(*)
-FROM gold_dim_currency_current_currency_rate_id_uniqueness_check
-WHERE record_count <> 1
-UNION ALL
-SELECT 'gold_dim_sales_territory_current_territory_id_uniqueness_check', count(*)
-FROM gold_dim_sales_territory_current_territory_id_uniqueness_check
-WHERE record_count <> 1
-UNION ALL
-SELECT 'gold_dim_customer_current_customer_id_uniqueness_check', count(*)
-FROM gold_dim_customer_current_customer_id_uniqueness_check
-WHERE record_count <> 1
-UNION ALL
-SELECT 'gold_fact_internet_sales_grain_uniqueness_check', count(*)
-FROM gold_fact_internet_sales_grain_uniqueness_check
-WHERE record_count <> 1;
-```
-
-Expected result: every `failing_rows` value is `0`.
+The gold pipeline defines one-row-per-key uniqueness checks as temporary views
+with Lakeflow expectations. These views are scoped to the pipeline run and are
+not persisted as queryable schema objects. Review the pipeline run expectations
+for failures. Use the persisted-table checks below for manual SQL validation
+after the run completes.
 
 ## Dimension Current-Row Uniqueness
 
