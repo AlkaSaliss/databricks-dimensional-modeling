@@ -14,6 +14,7 @@ The pipeline builds:
   expectations.
 - A gold dimensional model with date, customer, product, promotion, currency,
   and sales territory dimensions plus the Internet Sales fact table.
+- A BI layer with dashboard-ready Internet Sales detail and aggregate tables.
 - Pipeline-native validation tables and manual SQL validation checks.
 
 ## Repository Layout
@@ -23,17 +24,26 @@ The pipeline builds:
 ├── databricks.yml
 ├── resources/
 │   ├── catalogs.yml
+│   ├── dashboards.yml
 │   └── pipelines.yml
+├── assets/
+│   └── AdventureWorks Executive Sales Dashboard.lvdash.json
+├── sql/
+│   └── bi/
 ├── src/adventure_works_etl/
 │   ├── explorations/
 │   └── transformations/
 │       ├── bronze.py
 │       ├── silver.py
 │       ├── gold.py
+│       ├── bi.py
 │       └── helpers.py
 └── docs/
+    ├── bi_layer_design.md
+    ├── bi_layer_validation.md
     ├── dimensional_model_implementation_tasks.md
     ├── dimensional_model_validation.md
+    ├── operations.md
     ├── target_dimensional_model.png
     └── technical_design.md
 ```
@@ -56,6 +66,9 @@ Key pipeline settings:
 - Dev schema: current user short name
 - Dev event-log schema: `dev_${workspace.current_user.short_name}_logs`
 
+The bundle also deploys the `aw_executive_sales_dashboard` dashboard resource
+from `resources/dashboards.yml`.
+
 The project working agreement expects the Databricks CLI profile `personal`.
 
 ## Data Flow
@@ -69,10 +82,13 @@ flowchart LR
   dims["Gold dimensions\nType 1/Type 2 Auto CDC"]
   fact["fact_internet_sales\nOrder-line fact"]
   checks["Gold validation temp views\nLakeflow expectations"]
+  bi["BI tables\nDetail and aggregate reporting tables"]
+  dash["Databricks AI/BI dashboard\nBundle-managed Lakeview asset"]
 
   raw --> bronze --> silver --> stg --> dims --> fact
   dims --> checks
   fact --> checks
+  fact --> bi --> dash
 ```
 
 ## Bronze Layer
@@ -147,6 +163,18 @@ keys.
 The hash helper supports both column names and Spark Column expressions. Gold
 uses the optional `namespace` argument to avoid accidental key collisions across
 dimensions.
+
+## Exploration Notebooks
+
+`src/adventure_works_etl/explorations/` contains notebooks used outside the
+pipeline:
+
+- `extract_all_tables.ipynb` exports the required AdventureWorks source tables
+  from catalog `adventure-work` into the raw JSON volume consumed by bronze.
+- `EDA.ipynb` is a scratch notebook for source table inspection.
+
+These notebooks are not part of the Lakeflow pipeline. The pipeline library glob
+loads `src/adventure_works_etl/transformations/**`.
 
 ## Gold Layer
 
@@ -361,31 +389,63 @@ Because silver is not deduplicated, the fact row-count validation compares the
 fact table to distinct online source order-line grains rather than raw silver
 row counts.
 
+## BI Layer
+
+The BI layer is implemented in `src/adventure_works_etl/transformations/bi.py`.
+It reads only the gold dimensional model and produces dashboard-friendly
+Internet Sales tables.
+
+Current BI tables:
+
+- `bi_sales_order_line`: detail table at the same order-line grain as
+  `fact_internet_sales`.
+- `bi_sales_monthly`: monthly sales aggregate for executive trends and KPIs.
+- `bi_product_performance`: product hierarchy aggregate.
+- `bi_territory_performance`: sales territory aggregate.
+- `bi_customer_segments`: customer demographic aggregate.
+
+Metric definitions and BI scope are documented in `docs/bi_layer_design.md`.
+Manual BI reconciliation checks are documented in `docs/bi_layer_validation.md`.
+Dashboard query examples live in `sql/bi/`.
+
+The bundle-managed Databricks AI/BI dashboard is defined in
+`resources/dashboards.yml` and uses
+`assets/AdventureWorks Executive Sales Dashboard.lvdash.json`.
+
 ## Running The Project
+
+Show available commands:
+
+```bash
+make help
+```
 
 Validate the bundle:
 
 ```bash
-databricks bundle validate -t dev --profile personal
+make validate-bundle
 ```
 
 Deploy the bundle:
 
 ```bash
-databricks bundle deploy -t dev --profile personal
+make deploy-bundle
 ```
 
 Run the pipeline:
 
 ```bash
-databricks bundle run adventure_works_etl -t dev --profile personal
+make run-bundle
 ```
 
-Run local lint checks:
+Run local checks:
 
 ```bash
-uv run ruff check src/adventure_works_etl/transformations
+make pre-commit
 ```
+
+For target variables, prod deployment notes, dashboard behavior, and validation
+order, see `docs/operations.md`.
 
 ## Current Verified State
 

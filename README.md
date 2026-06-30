@@ -9,6 +9,7 @@ SQL blog series, adapted to this project structure:
 - Bronze ingestion from raw AdventureWorks JSON files.
 - Silver typed and quality-checked source-aligned tables.
 - Gold dimensional model with dimensions and the Internet Sales fact table.
+- BI-facing tables and a bundle-managed Databricks AI/BI dashboard.
 - Lakeflow expectations and validation queries for dimensional correctness.
 
 ## Architecture
@@ -20,6 +21,8 @@ Raw JSON files
   -> gold staging views
   -> gold dimensions and fact table
   -> gold validation check tables
+  -> BI-facing tables
+  -> Databricks AI/BI dashboard
 ```
 
 The pipeline is deployed as the Databricks Asset Bundle
@@ -52,17 +55,38 @@ SCD behavior:
 - `dim_sales_territory`: Type 2
 - `fact_internet_sales`: Type 1 incremental fact
 
+## BI Layer
+
+The pipeline also materializes Internet Sales BI tables that sit above the gold
+star schema:
+
+- `bi_sales_order_line`
+- `bi_sales_monthly`
+- `bi_product_performance`
+- `bi_territory_performance`
+- `bi_customer_segments`
+
+Dashboard query assets live in `sql/bi/`, and the bundle-managed dashboard is
+defined in `resources/dashboards.yml` from
+`assets/AdventureWorks Executive Sales Dashboard.lvdash.json`.
+
 ## Documentation
 
 - [Technical design](docs/technical_design.md)
+- [Operations guide](docs/operations.md)
 - [Implementation task roadmap](docs/dimensional_model_implementation_tasks.md)
 - [Validation SQL checklist](docs/dimensional_model_validation.md)
+- [BI layer design](docs/bi_layer_design.md)
+- [BI layer validation checklist](docs/bi_layer_validation.md)
+- [AI/BI dashboard and Genie design](docs/ai_bi_dashboard_genie_design.md)
+- [AI/BI Genie Space design plan](docs/ai_bi_genie_space_design_plan.md)
 - [Target dimensional model image](docs/target_dimensional_model.png)
 
 ## Prerequisites
 
 - Databricks CLI configured with profile `personal`
 - Access to workspace `https://dbc-911569fe-22cc.cloud.databricks.com`
+- Python 3.12 and `uv` for local development commands
 - Raw AdventureWorks JSON extracts available at:
 
 ```text
@@ -71,7 +95,25 @@ SCD behavior:
 
 ## Run Locally
 
-Run lint:
+Show repository commands:
+
+```bash
+make help
+```
+
+Install the dev environment:
+
+```bash
+uv sync --only-group dev
+```
+
+Run the same local checks used by CI:
+
+```bash
+make pre-commit
+```
+
+Run lint directly:
 
 ```bash
 uv run ruff check src/adventure_works_etl/transformations
@@ -80,19 +122,19 @@ uv run ruff check src/adventure_works_etl/transformations
 Validate the Databricks bundle:
 
 ```bash
-databricks bundle validate -t dev --profile personal
+make validate-bundle
 ```
 
 Deploy the bundle:
 
 ```bash
-databricks bundle deploy -t dev --profile personal
+make deploy-bundle
 ```
 
 Run the Lakeflow pipeline:
 
 ```bash
-databricks bundle run adventure_works_etl -t dev --profile personal
+make run-bundle
 ```
 
 ## Validate The Dimensional Model
@@ -115,6 +157,21 @@ The validation checks cover:
 
 Silver is intentionally not deduplicated, so fact row-count validation compares
 the fact table to distinct online source order-line grains.
+
+## Validate The BI Layer
+
+After dimensional validation passes, execute the SQL checks in:
+
+```text
+docs/bi_layer_validation.md
+```
+
+These checks prove that BI detail rows remain at fact grain, BI measures
+reconcile to `fact_internet_sales`, aggregate tables reconcile to
+`bi_sales_order_line`, and required dashboard display fields are populated.
+
+For deployment, CI, prod variables, and dashboard notes, see
+`docs/operations.md`.
 
 ## Current Verified Dev Result
 
