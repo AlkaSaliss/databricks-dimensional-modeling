@@ -97,5 +97,5 @@ BI validation should prove:
 - Aggregate totals reconcile to `bi_sales_order_line`.
 - Required dashboard display fields are not null.
 
-The validation SQL will be added as the next milestone after the first BI views
-are in place.
+The runnable validation SQL is documented in
+`docs/bi_layer_validation.md`.
