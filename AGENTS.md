@@ -11,3 +11,7 @@ subdirectory.
 
 ## Databricks interactions
 - Use databricks profile named "personal" to access databricks resources related to this project
+
+## Documentation
+- When you add new code, add docstring where it makes sense, no over-engineering.
+- When you make any change, make sure to add/update related documentations
