@@ -64,6 +64,18 @@ Territory aggregate by country, group, and territory.
 Customer demographic aggregate by income, education, occupation, gender,
 marital status, home ownership, and commute distance.
 
+## Dashboard Query Assets
+
+The first dashboard query files live under `sql/bi/`:
+
+- `executive_sales_overview.sql`
+- `product_performance.sql`
+- `territory_performance.sql`
+- `customer_segments.sql`
+
+Each file contains Databricks SQL statements that read from the BI tables only.
+Set the target catalog and schema before running the queries.
+
 ## Metric Definitions
 
 | Metric | Definition | Grain |
