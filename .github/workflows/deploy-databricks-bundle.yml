@@ -59,7 +59,7 @@ jobs:
               },
               {
                 \"principal\": \"${BUNDLE_VAR_deployment_user_name}\",
-                \"add\": [\"MANAGE\"]
+                \"add\": [\"MANAGE\", \"USE_CATALOG\"]
               }
             ]
           }"
@@ -132,7 +132,7 @@ jobs:
               },
               {
                 \"principal\": \"${BUNDLE_VAR_deployment_user_name}\",
-                \"add\": [\"MANAGE\"]
+                \"add\": [\"MANAGE\", \"USE_CATALOG\"]
               }
             ]
           }"

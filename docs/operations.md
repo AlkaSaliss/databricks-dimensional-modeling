@@ -172,7 +172,7 @@ For all branches, CI runs:
 For non-`main` branches, CI then:
 
 - Grants catalog permissions for the deployment service principal and deployment
-  user.
+  user, including catalog traversal for the deployment user.
 - Grants `READ_VOLUME` on `workspace.default.adventure_works_dump` for the raw
   input files.
 - Validates the dev bundle.
@@ -183,6 +183,8 @@ For `main`, CI:
 
 - Grants catalog and raw volume permissions for the deployment service principal
   and deployment user.
+- Applies prod schema grants that give the deployment user `USE_SCHEMA` and
+  `SELECT` on the created data objects.
 - Validates and plans the prod bundle.
 - Deploys prod through the `production` GitHub environment.
 

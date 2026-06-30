@@ -8,6 +8,8 @@ resources:
         - principal: ${var.deployment_user_name}
           privileges:
             - MANAGE
+            - USE_SCHEMA
+            - SELECT
         - principal: ${var.deployment_service_principal_name}
           privileges:
             - MANAGE
