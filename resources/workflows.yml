@@ -1,0 +1,31 @@
+targets:
+  prod:
+    resources:
+      jobs:
+        prod_job:
+          name: aw_orchestration_job
+          description: Orchestration job for the AdventureWorks data warehouse dimensional model ETL
+          health:
+            rules:
+              - metric: RUN_DURATION_SECONDS
+                op: GREATER_THAN
+                value: 600
+          email_notifications:
+            on_success:
+              - ${var.deployment_user_name}
+            on_failure:
+              - ${var.deployment_user_name}
+            on_duration_warning_threshold_exceeded:
+              - ${var.deployment_user_name}
+          schedule:
+            quartz_cron_expression: "0 0 8 * * ?"
+            timezone_id: "Europe/Paris"
+          tasks:
+            - task_key: ${resources.pipelines.adventure_works_etl.name}
+              pipeline_task:
+                pipeline_id: ${resources.pipelines.adventure_works_etl.id}
+            - task_key: ${resources.dashboards.aw_executive_sales_dashboard.display_name}
+              depends_on:
+                - task_key: ${resources.pipelines.adventure_works_etl.name}
+              dashboard_task:
+                dashboard_id: ${resources.dashboards.aw_executive_sales_dashboard.id}
