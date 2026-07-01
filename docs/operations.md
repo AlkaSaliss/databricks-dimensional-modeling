@@ -188,6 +188,10 @@ For `main`, CI:
 - Validates and plans the prod bundle.
 - Deploys prod through the `production` GitHub environment.
 
+Prod job task keys are stable machine identifiers. Do not derive task keys from
+dashboard display names, because Databricks job task keys only allow
+alphanumeric characters, hyphens, and underscores.
+
 CI expects these secrets:
 
 - `DATABRICKS_HOST`

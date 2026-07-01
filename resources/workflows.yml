@@ -24,7 +24,7 @@ targets:
             - task_key: ${resources.pipelines.adventure_works_etl.name}
               pipeline_task:
                 pipeline_id: ${resources.pipelines.adventure_works_etl.id}
-            - task_key: ${resources.dashboards.aw_executive_sales_dashboard.display_name}
+            - task_key: aw_executive_sales_dashboard
               depends_on:
                 - task_key: ${resources.pipelines.adventure_works_etl.name}
               dashboard_task:
